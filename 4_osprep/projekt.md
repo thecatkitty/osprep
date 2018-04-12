@@ -29,17 +29,25 @@ Usunięcie pakietu.
 set
 ---
 Modyfikacja ustawień
-* bez parametrów - wyświetlenie wszystkich
-* tylko nazwa - wyświetlenie wartości
-* nazwa i wartość - ustawienie wartości
+
+- bez parametrów - wyświetlenie wszystkich
+
+- tylko nazwa - wyświetlenie wartości
+
+- nazwa i wartość - ustawienie wartości
 
 apply
 -----
 Zastosowanie zmian.
+
 1. Pobranie obrazu bazowego.
+
 2. Pobranie wybranych pakietów.
+
 3. Rozpakowanie obrazu.
+
 4. Rozpakowanie pakietów.
+
 5. Zastosowanie ustawień.
 
 image
