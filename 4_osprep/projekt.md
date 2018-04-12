@@ -2,9 +2,35 @@ Operating System Preparation Utility
 ====================================
 Narzędzie przygotowawcze dla alternatywnych systemów operacyjnych.
 
+`osprep.sh` - wywołanie pełnoekranowego interfejsu interaktywnego
+
+`osprep.sh <polecenie> <opcje>` - wywołanie polecenia
+
+`osprep.sh --version`, `osprep.sh -v` - informacja o wersji
+
+`osprep.sh --help`, `osprep.sh -h` - pomoc
+
+
+Opcje wspólne dla wszystkich poleceń
+------------------------------------
+`--local`, `-l` - korzystanie już pobranych pakietów
+
+`--format=<fmt>`, `-f<fmt>` - format wyjścia programu
+
+* `text` - zwykły tekst
+
+* `csv` - wartości oddzielone średnikami
+
+`--verbose` - szczegółowe wyjście
+
+
 update
 ------
-Aktualizacja lokalnego repozytorium zestawów konfiguracyjnych.
+Aktualizacja lokalnego repozytorium konfiguracji zestawów.
+
+`osprep.sh update [<url>]`
+
+`<url>` - opcjonalny adres nowego repozytorium zdalnego
 
 bases
 ------------
@@ -28,13 +54,11 @@ Usunięcie pakietu.
 
 set
 ---
-Modyfikacja ustawień
+`osprep.sh set` - wyświetlenie ustawień
 
-- bez parametrów - wyświetlenie wszystkich
+`osprep.sh set <nazwa>` - wyświetlenie wartości
 
-- tylko nazwa - wyświetlenie wartości
-
-- nazwa i wartość - ustawienie wartości
+`osprep.sh set <nazwa> <wartość>` - ustawienie wartości
 
 apply
 -----
@@ -50,6 +74,14 @@ Zastosowanie zmian.
 
 5. Zastosowanie ustawień.
 
+discard
+-------
+Anulowanie zmian.
+
 image
 -----
 Utworzenie obrazu uruchomieniowego.
+
+`osprep.sh image <dir>`
+
+`<dir>` - katalog wyjściowy
