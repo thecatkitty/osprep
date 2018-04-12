@@ -29,9 +29,9 @@ Usunięcie pakietu.
 set
 ---
 Modyfikacja ustawień
-- bez parametrów - wyświetlenie wszystkich
-- tylko nazwa - wyświetlenie wartości
-- nazwa i wartość - ustawienie wartości
+* bez parametrów - wyświetlenie wszystkich
+* tylko nazwa - wyświetlenie wartości
+* nazwa i wartość - ustawienie wartości
 
 apply
 -----
