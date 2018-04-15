@@ -16,7 +16,7 @@ echo   '<h1>Hello there</h1>'
 echo   "<p>General $HTTP_USER_AGENT</p>"
 
 echo   '<table>'
-IFS=' ' ls -l | sed -e 's/  / /' | while read -ra ITEM; do
+IFS=';' cat osrepo/bases.csv | while read -ra ITEM; do
   echo -n '<tr>'
   for i in "${ITEM[@]}"; do
     echo -n "<td>$i</td>"
