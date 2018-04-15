@@ -16,10 +16,10 @@ echo   '<h1>Hello there</h1>'
 echo   "<p>General $HTTP_USER_AGENT</p>"
 
 echo   '<table>'
-IFS=';' cat osrepo/bases.csv | while read -ra ITEM; do
+cat osrepo/bases.csv | while read LINE; do
   echo -n '<tr>'
-  for i in "${ITEM[@]}"; do
-    echo -n "<td>$i</td>"
+  echo $LINE | tr \; \\n | while read COLUMN; do
+    echo -n "<td>$COLUMN</td>"
   done
   echo '</tr>'
 done
