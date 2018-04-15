@@ -14,6 +14,17 @@ echo  '</head>'
 echo  '<body>'
 echo   '<h1>Hello there</h1>'
 echo   "<p>General $HTTP_USER_AGENT</p>"
+
+echo   '<table>'
+IFS=' ' ls -l | sed -e 's/  / /' | while read -ra ITEM; do
+  echo -n '<tr>'
+  for i in "${ITEM[@]}"; do
+    echo -n "<td>$i</td>"
+  done
+  echo '</tr>'
+done
+echo   '</table>'
+
 echo  '</body>'
 
 echo '</html>'
