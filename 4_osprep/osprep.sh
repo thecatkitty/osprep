@@ -1,5 +1,14 @@
 #!/bin/bash -l
 
+# Author           : Mateusz Karcz
+# Author           : April 2018
+# Version          : 0.1.1804
+#
+# Description      :
+# Opis
+#
+# Licensed under MIT License.
+
 PROGRAM_NAME="Celones Operating System Preparation Utility"
 
 exec 3>&1
