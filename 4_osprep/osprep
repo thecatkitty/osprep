@@ -75,9 +75,9 @@ function print_list {
 
   else
     while read LINE; do
-      IFS=';' read -r -a BASE_DESC <<< "$LINE"
-      echo -e "${GREEN}${BASE_DESC[0]}${NC} ${BASE_DESC[1]}"
-      echo -e "  ${BOLD}${BASE_DESC[2]}:${NC} ${BASE_DESC[3]}"
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      echo -e "${GREEN}${RECORD[0]}${NC} ${RECORD[1]}"
+      echo -e "  ${BOLD}${RECORD[2]}:${NC} ${RECORD[3]}"
       echo ""
     done < "$FILE"
   fi
@@ -92,11 +92,11 @@ function find_package {
   if [ "${PACK_NAME[1]}" ]; then
 
     while read LINE; do
-      IFS=';' read -r -a BASE_DESC <<< "$LINE"
-      if [ "${BASE_DESC[0]}" == "${PACK_NAME[0]}" \
-        -a "${BASE_DESC[1]}" == "${PACK_NAME[1]}" ]; then
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      if [ "${RECORD[0]}" == "${PACK_NAME[0]}" \
+        -a "${RECORD[1]}" == "${PACK_NAME[1]}" ]; then
 
-        FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+        FOUND="${RECORD[0]}~${RECORD[1]}"
         return
 
       fi
@@ -107,9 +107,9 @@ function find_package {
   else
 
     while read LINE; do
-      IFS=';' read -r -a BASE_DESC <<< "$LINE"
-      if [ "${BASE_DESC[0]}" == "$1" ]; then
-        FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      if [ "${RECORD[0]}" == "$1" ]; then
+        FOUND="${RECORD[0]}~${RECORD[1]}"
       fi
     done < "$FILE"
 
@@ -281,13 +281,58 @@ function add {
       exit 0
     fi
 
-    echo -n "$FOUND" >> ".osprep/packages"
-    echo "Successfully added \`$FOUND\` package."
+    echo "$FOUND" >> ".osprep/packages"
+    echo "Successfully added \`$FOUND\` package to the project."
   else
     echo "Cannot find package: \`$1\`!" >&2
     exit 1
   fi
 }
+
+function remove {
+  FILE=".osprep/packages"
+  FOUND=`grep -E "^$1(~.*)?$" < "$FILE"`
+
+  if [ "$FOUND" ]; then
+    TMP=`mktemp`
+    grep -v -E "^$1(~.*)?$" < "$FILE" > "$TMP"
+    rm "$FILE"
+    mv "$TMP" "$FILE"
+
+    echo -n "Successfully removed from the project the following packages: "
+    echo $FOUND
+  else
+    echo "Cannot find any packages matching \`$1\` in the project!" >&2
+    exit 1
+  fi
+}
+
+function list {
+  BASE=`base`
+  if [ "$BASE" == "<none>" ]; then
+    echo "Select base package first!" >&2
+    exit 1
+  fi
+
+  CSV_PATH="`rdn_to_path "$BASE"`.csv"
+  FILE=".osprep/cache/${CSV_PATH}"
+
+  if [ ! -f "$FILE" ]; then
+    echo "Cannot read the package list! Run \`osprep packages\` first." >&2
+    exit 1
+  fi
+
+  TMP=`mktemp`
+  while read LINE; do
+    IFS='~' read -r -a SPLIT <<< "$LINE"
+    grep -E "^${SPLIT[0]};${SPLIT[1]};" "$FILE" >> "$TMP"
+  done < ".osprep/packages"
+
+  FILE="$TMP"
+  print_list
+  rm "$TMP"
+}
+
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
 exec 3>&1
