@@ -2,13 +2,13 @@ Operating System Preparation Utility
 ====================================
 Narzędzie przygotowawcze dla alternatywnych systemów operacyjnych. Operować będzie na plikach konfiguracyjnych będących skryptami GNU Make. Pakiety będą skompresowane formatem XZ/TXZ, zaś ich metadane będą zapisane w _polskim_ (stosującym średniki) formacie CSV.
 
-`osprep.sh` - wywołanie pełnoekranowego interfejsu interaktywnego (opartego o `dialog`) będącego _opakowaniem_ dla wszystkich poleceń tekstowych
+`osprep` - wywołanie pełnoekranowego interfejsu interaktywnego (opartego o `dialog`) będącego _opakowaniem_ dla wszystkich poleceń tekstowych
 
-`osprep.sh <polecenie> <opcje>` - wywołanie polecenia
+`osprep <polecenie> <opcje>` - wywołanie polecenia
 
-`osprep.sh --version`, `osprep.sh -v` - informacja o wersji
+`osprep --version`, `osprep -v` - informacja o wersji
 
-`osprep.sh --help`, `osprep.sh -h` - pomoc
+`osprep --help`, `osprep -h` - pomoc
 
 
 Opcje wspólne dla wszystkich poleceń
@@ -28,7 +28,7 @@ update
 ------
 Aktualizacja lokalnego repozytorium konfiguracji zestawów.
 
-`osprep.sh update [<url>]`
+`osprep update [<url>]`
 
 `<url>` - opcjonalny adres nowego repozytorium zdalnego (domyślnie `http://pkg.svc.celones.pl/osprep/`)
 
@@ -36,51 +36,57 @@ bases
 ------------
 Wyświetlenie listy dostępnych obrazów bazowych.
 
-`osprep.sh bases`
+`osprep bases`
 
 base
 -------------
 Wybór obrazu bazowego.
 
-`osprep.sh base <nazwa>[~<wersja>]`
+`osprep base <nazwa>[~<wersja>]`
 
-np. `osprep.sh base com.microsoft.ms-dos~8.0`
+np. `osprep base com.microsoft.ms-dos~8.0`
 
 packages
 -------------
 Wyświetlenie listy pakietów dostępnych dla danego obrazu bazowego.
 
-`osprep.sh packages`
+`osprep packages`
 
 add
 -------------
 Dodanie pakietu.
 
-`osprep.sh add <nazwa>[~<wersja>]`
+`osprep add <nazwa>[~<wersja>]`
 
-`osprep.sh add com.jelcyn.zdzich`
+`osprep add com.jelcyn.zdzich`
+
+list
+-------------
+Wyświetlenie listy wybranych pakietów.
+
+`osprep list`
 
 remove
 --------------
 Usunięcie pakietu.
 
-`osprep.sh remove <nazwa>`
+`osprep remove <nazwa>`
 
 set
 ---
-`osprep.sh set` - wyświetlenie ustawień
+`osprep set` - wyświetlenie ustawień
 
-`osprep.sh set <nazwa>` - wyświetlenie wartości
+`osprep set <nazwa>` - wyświetlenie wartości
 
-`osprep.sh set <nazwa> <wartość>` - ustawienie wartości
+`osprep set <nazwa> <wartość>` - ustawienie wartości
 
-np. `osprep.sh set keyboard pl`
+np. `osprep set keyboard pl`
 
 apply
 -----
 Zastosowanie zmian (tzn. wygenerowanie katalogu wyjściowego w katalogu roboczym).
 
-`osprep.sh apply <dir>` / `make apply`
+`osprep apply <dir>` / `make apply`
 
 1. Pobranie obrazu bazowego.
 
@@ -96,12 +102,12 @@ discard
 -------
 Anulowanie zmian (tzn. skasowanie generowanego skryptu dla `apply`).
 
-`osprep.sh discard` / `make clean`
+`osprep discard` / `make clean`
 
 image
 -----
 Utworzenie obrazu uruchomieniowego (np. ISO, IMG, VFD).
 
-`osprep.sh image <dir>` / `make image`
+`osprep image <dir>` / `make image`
 
 `<dir>` - katalog wyjściowy
