@@ -40,7 +40,7 @@ function check_make {
 function http_header {
   # $URL - remote resource
   # $1   - name of the HTTP header
-  wget -S --spider "$URL" 2>&1 | grep "$1: " | sed -e 's/^ *[^:]\+: //'
+  wget -S --spider -U "$HTTP_USER_AGENT" "$URL" 2>&1 | grep "$1: " | sed -e 's/^ *[^:]\+: //'
 }
 
 function http_download {
@@ -444,7 +444,7 @@ function apply {
   while read LINE; do prepare_apply "$LINE"; done < ".osprep/packages"
 
   RESTORE_DIR="$PWD"
-  find "$MAKEDIR" -type d | grep '~' | while read LINE; do
+  find `realpath "$MAKEDIR"` -type d | grep '~' | while read LINE; do
     cd "$LINE"
     make apply
   done
