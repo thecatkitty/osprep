@@ -38,9 +38,9 @@ function check_make {
 }
 
 function http_header {
-  # $URL    - remote resource
-  # $HEADER - name of the HTTP header
-  wget -S --spider "$URL" 2>&1 | grep "$HEADER: " | sed -e 's/^ *[^:]\+: //'
+  # $URL - remote resource
+  # $1   - name of the HTTP header
+  wget -S --spider "$URL" 2>&1 | grep "$1: " | sed -e 's/^ *[^:]\+: //'
 }
 
 function http_download {
@@ -58,6 +58,29 @@ function download_gauge {
   --backtitle "$PROGRAM_NAME" \
   --title "Downloading" \
   --gauge "$URL" 10 100
+}
+
+function rdn_to_path {
+  IFS='~' read -r -a SPLIT <<< "$1"
+  if [ -n "${SPLIT[1]}" ]; then
+    sed -e 's/\./\//g' <<< "${SPLIT[0]}" | sed -e "s/$/~${SPLIT[1]}/"
+  else
+    sed -e 's/\./\//g' <<< "$1"
+  fi
+}
+
+function print_list {
+  # $FILE - input CSV file
+  if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
+
+  else
+    while read LINE; do
+      IFS=';' read -r -a BASE_DESC <<< "$LINE"
+      echo -e "${GREEN}${BASE_DESC[0]}${NC} ${BASE_DESC[1]}"
+      echo -e "  ${BOLD}${BASE_DESC[2]}:${NC} ${BASE_DESC[3]}"
+      echo ""
+    done < "$FILE"
+  fi
 }
 
 ################################### COMMANDS ###################################
@@ -96,10 +119,10 @@ function update {
   FILE=".osprep/cache/bases.csv"
   URL="${REPO_URL}bases.csv"
 
-  mkdir -p $(dirname "$FILE")
+  mkdir -p `dirname "$FILE"`
 
   if [ -f "$FILE" ]; then
-    HTTP_LAST_MODIFIED=$(HEADER=Last-Modified http_header)
+    HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
     if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
       rm "$FILE"
     else
@@ -124,16 +147,7 @@ function bases {
 
   if [ ! -f "$FILE" ]; then update; fi
 
-  if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
-
-  else
-    while read LINE; do
-      IFS=';' read -r -a BASE_DESC <<< "$LINE"
-      echo -e "${GREEN}${BASE_DESC[0]}${NC} ${BASE_DESC[1]}"
-      echo -e "  ${BOLD}${BASE_DESC[2]}:${NC} ${BASE_DESC[3]}"
-      echo ""
-    done < "$FILE"
-  fi
+  print_list
 }
 
 function base {
@@ -199,6 +213,46 @@ function base {
   fi
 }
 
+function packages {
+  BASE=`base`
+  if [ "$BASE" == "<none>" ]; then
+    echo "Select base package first!" >&2
+    exit 1
+  fi
+
+  CSV_PATH="`rdn_to_path "$BASE"`.csv"
+
+  URL="${REPO_URL}${CSV_PATH}"
+  FILE=".osprep/cache/${CSV_PATH}"
+
+  mkdir -p `dirname "$FILE"`
+
+  if [ -f "$FILE" -a \( $OPT_LOCAL == false \) ]; then
+    HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
+    if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
+      rm "$FILE"
+      echo "New package list in the remote repository."
+    fi
+  fi
+
+  if [ ! -f "$FILE" -a \( $OPT_LOCAL == true \) ]; then
+    echo "No package list in the local repository!" >&2
+    exit 1
+  fi
+
+  if [ ! -f "$FILE" ]; then
+    echo "Fetching the package list..."
+    http_download
+    if [ -f "$FILE" ]; then
+      echo "Package list update completed."
+    else
+      echo "Cannot update the package list!" >&2
+      exit 1
+    fi
+  fi
+
+  print_list
+}
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
 exec 3>&1

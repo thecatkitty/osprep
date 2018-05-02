@@ -1,1 +1,1 @@
-*.sh -crlf
+osprep -crlf
