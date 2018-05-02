@@ -46,6 +46,7 @@ function http_header {
 function http_download {
   # $URL  - remote resource
   # $FILE - output file name
+  mkdir -p `dirname "$FILE"`
   wget --no-verbose --show-progress --progress=bar -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
   if [ $? -ne 0 ]; then rm -f "$FILE"; fi
 }
@@ -148,7 +149,26 @@ function extract_package {
   # $FILE       - package file path
   # $TARGET_DIR - extraction output directory
   mkdir -p "$TARGET_DIR"
-  tar -xzf "$FILE" -C "$TARGET_DIR" --verbose
+  tar -xJf "$FILE" -C "$TARGET_DIR" --verbose
+}
+
+function prepare_apply {
+  # $MAKEDIR - Makefiles directory
+  # $TARGET  - target directory
+  # $1       - package ID
+  GENERAL_PATH=`rdn_to_path "$1"`
+  MAKEFILE_PATH="${MAKEDIR}/${GENERAL_PATH}"
+
+  mkdir -p "$MAKEFILE_PATH"
+
+  echo "HTTPDOWNLOAD = wget --no-verbose --show-progress --progress=bar -U \"$HTTP_USER_AGENT\" -O" > "${MAKEFILE_PATH}/Makefile"
+  echo "OUT = \"`realpath "$TARGET"`\"" >> "${MAKEFILE_PATH}/Makefile"
+  echo "" >> "${MAKEFILE_PATH}/Makefile"
+  
+  cat ".osprep/settings/${GENERAL_PATH}.mk" >> "${MAKEFILE_PATH}/Makefile"
+  echo "" >> "${MAKEFILE_PATH}/Makefile"
+  cat ".osprep/cache/${GENERAL_PATH}/apply.mk" >> "${MAKEFILE_PATH}/Makefile"
+  echo "" >> "${MAKEFILE_PATH}/Makefile"
 }
 
 ################################### COMMANDS ###################################
@@ -380,6 +400,7 @@ function snap {
 
   GENERAL_PATH=`rdn_to_path "$BASE"`
   PKG_PATH="${GENERAL_PATH}.txz"
+  CFG_PATH=".osprep/settings/${GENERAL_PATH}.mk"
   FILE=".osprep/cache/${PKG_PATH}"
   URL="${REPO_URL}${PKG_PATH}"
   TARGET_DIR=".osprep/cache/${GENERAL_PATH}"
@@ -387,11 +408,14 @@ function snap {
   echo -n "Fetching base package \`$BASE\`... "
   download_package
   extract_package
-  cp "${TARGET_DIR}/settings.tsv" ".osprep/settings/${GENERAL_PATH}.tsv"
+  mkdir -p `dirname "$CFG_PATH"`
+  cp "${TARGET_DIR}/settings.mk" "$CFG_PATH"
 
+  touch ".osprep/packages"
   while read LINE; do
     GENERAL_PATH=`rdn_to_path "$LINE"`
     PKG_PATH="${GENERAL_PATH}.txz"
+    CFG_PATH=".osprep/settings/${GENERAL_PATH}.mk"
     FILE=".osprep/cache/${PKG_PATH}"
     URL="${REPO_URL}${PKG_PATH}"
     TARGET_DIR=".osprep/cache/${GENERAL_PATH}" 
@@ -399,13 +423,38 @@ function snap {
     echo -n "Fetching package \`$LINE\`... "
     download_package
     extract_package
-    cp "${TARGET_DIR}/settings.tsv" ".osprep/settings/${GENERAL_PATH}.tsv"
+    mkdir -p `dirname "$CFG_PATH"`
+    cp "${TARGET_DIR}/settings.mk" "$CFG_PATH"
   done < ".osprep/packages"
+}
+
+function apply {
+  BASE=`base`
+  if [ "$BASE" == "<none>" ]; then
+    echo "Select base package first!" >&2
+    exit 1
+  fi
+  TARGET="target"
+  if [ "$1" ]; then TARGET="$1"; fi
+  mkdir -p "$TARGET"
+
+  MAKEDIR=".osprep/make"
+  touch ".osprep/packages"
+  prepare_apply "$BASE"
+  while read LINE; do prepare_apply "$LINE"; done < ".osprep/packages"
+
+  RESTORE_DIR="$PWD"
+  find "$MAKEDIR" -type d | grep '~' | while read LINE; do
+    cd "$LINE"
+    make apply
+  done
+  cd "$RESTORE_DIR"
 }
 
 function discard {
   rm -f ".osprep/packages"
   rm -rf ".osprep/settings"
+  rm -rf ".osprep/make"
 }
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
@@ -437,7 +486,7 @@ case $1 in
   remove   ) remove   "$2";;
   list     ) list     "$2";;
   snap     ) snap     "$2";;
-  set      ) set      "$2";;
+  #set      ) set      "$2";;
   apply    ) apply    "$2";;
   discard  ) discard  "$2";;
   image    ) image    "$2";;
