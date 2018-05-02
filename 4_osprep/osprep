@@ -83,6 +83,42 @@ function print_list {
   fi
 }
 
+function find_package {
+  # $FILE - CSV file
+  # $1    - package to be found
+
+  FOUND=''
+  IFS="~" read -r -a PACK_NAME <<< "$1"
+  if [ "${PACK_NAME[1]}" ]; then
+
+    while read LINE; do
+      IFS=';' read -r -a BASE_DESC <<< "$LINE"
+      if [ "${BASE_DESC[0]}" == "${PACK_NAME[0]}" \
+        -a "${BASE_DESC[1]}" == "${PACK_NAME[1]}" ]; then
+
+        FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+        return
+
+      fi
+    done < "$FILE"
+
+    return
+
+  else
+
+    while read LINE; do
+      IFS=';' read -r -a BASE_DESC <<< "$LINE"
+      if [ "${BASE_DESC[0]}" == "$1" ]; then
+        FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+      fi
+    done < "$FILE"
+
+    return
+
+  fi
+}
+
+
 ################################### COMMANDS ###################################
 function interactive {
   tput smcup
@@ -169,45 +205,13 @@ function base {
       exit 1
     fi
 
-    IFS="~" read -r -a PACK_NAME <<< "$1"
-    if [ "${PACK_NAME[1]}" ]; then
-
-      while read LINE; do
-        IFS=';' read -r -a BASE_DESC <<< "$LINE"
-        if [ "${BASE_DESC[0]}" == "${PACK_NAME[0]}" \
-          -a "${BASE_DESC[1]}" == "${PACK_NAME[1]}" ]; then
-
-          FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
-          echo -n "$FOUND" > ".osprep/base"
-          echo "Successfully selected \`$FOUND\` as the base package."
-          exit 0
-
-        fi
-      done < "$FILE"
-
-      echo "Cannot find base package: \`$2\`!" >&2
-      exit 1
-
+    find_package $1
+    if [ "$FOUND" ]; then
+      echo -n "$FOUND" > ".osprep/base"
+      echo "Successfully selected \`$FOUND\` as the base package."
     else
-
-      FOUND=''
-
-      while read LINE; do
-        IFS=';' read -r -a BASE_DESC <<< "$LINE"
-        if [ "${BASE_DESC[0]}" == "$1" ]; then
-          FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
-        fi
-      done < "$FILE"
-
-      if [ -n "$FOUND" ]; then
-        echo -n "$FOUND" > ".osprep/base"
-        echo "Successfully selected \`$FOUND\` as the base package."
-        exit 0
-      fi
-
       echo "Cannot find base package: \`$1\`!" >&2
       exit 1
-
     fi
 
   fi
@@ -254,6 +258,37 @@ function packages {
   print_list
 }
 
+function add {
+  BASE=`base`
+  if [ "$BASE" == "<none>" ]; then
+    echo "Select base package first!" >&2
+    exit 1
+  fi
+
+  CSV_PATH="`rdn_to_path "$BASE"`.csv"
+  FILE=".osprep/cache/${CSV_PATH}"
+
+  if [ ! -f "$FILE" ]; then
+    echo "Cannot read the package list! Run \`osprep packages\` first." >&2
+    exit 1
+  fi
+
+  find_package $1
+  if [ "$FOUND" ]; then
+    touch ".osprep/packages"
+    if [ `grep "^$FOUND" < ".osprep/packages"` ]; then
+      echo "Package \`$FOUND\` has been selected before."
+      exit 0
+    fi
+
+    echo -n "$FOUND" >> ".osprep/packages"
+    echo "Successfully added \`$FOUND\` package."
+  else
+    echo "Cannot find package: \`$1\`!" >&2
+    exit 1
+  fi
+}
+
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
 exec 3>&1
 
@@ -279,6 +314,7 @@ case $1 in
   packages       ) packages    "$2";;
   add            ) add         "$2";;
   remove         ) remove      "$2";;
+  list           ) list        "$2";;
   set            ) set         "$2";;
   apply          ) apply       "$2";;
   discard        ) discard     "$2";;
@@ -288,7 +324,7 @@ case $1 in
     if [ $OPT_LOCAL = true ]; then
       interactive
     else
-      echo "$1 is not a valid OS Preparation Utility command!" >&2
+      echo "\`$1\` is not a valid OS Preparation Utility command!" >&2
       exit 1
     fi
 
