@@ -14,8 +14,13 @@ PROGRAM_VERSION="0.1.1805"
 
 HTTP_USER_AGENT="Celones-OSPrep/$PROGRAM_VERSION"
 
+NC="\033[0m"
+BOLD="\033[1m"
+GREEN="\033[0;32m"
+
 OPT_FORMAT="text"
 OPT_LOCAL=false
+REPO_URL="http://pkg.svc.celones.pl/osprep/"
 
 ############################### HELPER ROUTINES ################################
 function check_wget {
@@ -33,15 +38,21 @@ function check_make {
 }
 
 function http_header {
+  # $URL    - remote resource
+  # $HEADER - name of the HTTP header
   wget -S --spider "$URL" 2>&1 | grep "$HEADER: " | sed -e 's/^ *[^:]\+: //'
 }
 
 function http_download {
-  wget --progress=dot -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
+  # $URL  - remote resource
+  # $FILE - output file name
+  wget --no-verbose --show-progress --progress=bar -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
 }
 
 function download_gauge {
-  http_download 2>&1 \
+  # $URL  - remote resource
+  # $FILE - output file name
+  wget --progress=dot -U "$HTTP_USER_AGENT" -O "$FILE" "$URL" 2>&1 \
   | grep "%" | sed -u -e 's/^ *[^ ]\+[\. ]\+//g' | sed -u -e 's/%.*//' \
   | dialog \
   --backtitle "$PROGRAM_NAME" \
@@ -82,11 +93,47 @@ function help {
 }
 
 function update {
-  echo "Update local configuration assemblies repository"
+  FILE=".osprep/cache/bases.csv"
+  URL="${REPO_URL}bases.csv"
+
+  mkdir -p $(dirname "$FILE")
+
+  if [ -f "$FILE" ]; then
+    HTTP_LAST_MODIFIED=$(HEADER=Last-Modified http_header)
+    if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
+      rm "$FILE"
+    else
+      echo "Repository already up to date."
+    fi
+  fi
+
+  if [ ! -f "$FILE" ]; then
+    echo "Updating the repository..."
+    http_download
+    if [ -f "$FILE" ]; then
+      echo "Repository update completed."
+    else
+      echo "Cannot update repository!" >&2
+      exit 1
+    fi
+  fi
 }
 
 function bases {
-  echo "List available base images"
+  FILE=".osprep/cache/bases.csv"
+
+  if [ ! -f "$FILE" ]; then update; fi
+
+  if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
+
+  else
+    cat "$FILE" | while read LINE; do
+      IFS=';' read -r -a BASE_DESC <<< "$LINE"
+      echo -e "${GREEN}${BASE_DESC[0]}${NC} ${BASE_DESC[1]}"
+      echo -e "  ${BOLD}${BASE_DESC[2]}:${NC} ${BASE_DESC[3]}"
+      echo ""
+    done
+  fi
 }
 
 function base {
