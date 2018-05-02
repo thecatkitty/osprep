@@ -47,6 +47,7 @@ function http_download {
   # $URL  - remote resource
   # $FILE - output file name
   wget --no-verbose --show-progress --progress=bar -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
+  if [ $? -ne 0 ]; then rm -f "$FILE"; fi
 }
 
 function download_gauge {
@@ -58,6 +59,7 @@ function download_gauge {
   --backtitle "$PROGRAM_NAME" \
   --title "Downloading" \
   --gauge "$URL" 10 100
+  if [ $? -ne 0 ]; then rm -f "$FILE"; fi
 }
 
 function rdn_to_path {
@@ -118,6 +120,39 @@ function find_package {
   fi
 }
 
+function download_package {
+  # $FILE - output file path
+  # $URL  - remote repository path
+  if [ -f "$FILE" ]; then
+    HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
+    if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
+      rm "$FILE"
+    else
+      echo "Package up to date, skipping."
+    fi
+  fi
+
+  if [ ! -f "$FILE" ]; then
+    echo "Downloading the package."
+    http_download
+    if [ -f "$FILE" ]; then
+      echo "Package download completed."
+    else
+      echo "Couldn't download package!" >&2
+      exit 1
+    fi
+  fi
+}
+
+function extract_package {
+  # $FILE - output file path
+  DIRNAME=`dirname "$FILE"`
+  FILNAME=`basename -s .txz "$FILE"`
+  TARGET_DIR="${DIRNAME}/${FILNAME}"
+
+  mkdir -p "$TARGET_DIR"
+  tar -xzf "$FILE" -C "$TARGET_DIR" --verbose
+}
 
 ################################### COMMANDS ###################################
 function interactive {
@@ -328,6 +363,7 @@ function list {
   fi
 
   TMP=`mktemp`
+  touch ".osprep/packages"
   while read LINE; do
     IFS='~' read -r -a SPLIT <<< "$LINE"
     grep -E "^${SPLIT[0]};${SPLIT[1]};" "$FILE" >> "$TMP"
@@ -338,6 +374,34 @@ function list {
   rm "$TMP"
 }
 
+function snap {
+  BASE=`base`
+  if [ "$BASE" == "<none>" ]; then
+    echo "Select base package first!" >&2
+    exit 1
+  fi
+
+  PKG_PATH="`rdn_to_path "$BASE"`.txz"
+  FILE=".osprep/cache/${PKG_PATH}"
+  URL="${REPO_URL}${PKG_PATH}"
+  echo -n "Fetching base package \`$BASE\`... "
+  download_package
+  extract_package
+
+  while read LINE; do
+    PKG_PATH="`rdn_to_path "$LINE"`.txz"
+    FILE=".osprep/cache/${PKG_PATH}"
+    URL="${REPO_URL}${PKG_PATH}"
+    echo -n "Fetching package \`$LINE\`... "
+    download_package
+    extract_package
+  done < ".osprep/packages"
+}
+
+function discard {
+  rm -f ".osprep/packages"
+  rm -rf ".osprep/settings"
+}
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
 exec 3>&1
@@ -355,22 +419,23 @@ done
 
 case $1 in
 
-  ''             ) interactive ;;
+  '' ) interactive ;;
 
   --version|-v   ) version     ;;
   --help|-h|help ) help        ;;
 
-  update         ) update      "$2";;
-  bases          ) bases       "$2";;
-  base           ) base        "$2";;
-  packages       ) packages    "$2";;
-  add            ) add         "$2";;
-  remove         ) remove      "$2";;
-  list           ) list        "$2";;
-  set            ) set         "$2";;
-  apply          ) apply       "$2";;
-  discard        ) discard     "$2";;
-  image          ) image       "$2";;
+  update   ) update   "$2";;
+  bases    ) bases    "$2";;
+  base     ) base     "$2";;
+  packages ) packages "$2";;
+  add      ) add      "$2";;
+  remove   ) remove   "$2";;
+  list     ) list     "$2";;
+  snap     ) snap     "$2";;
+  set      ) set      "$2";;
+  apply    ) apply    "$2";;
+  discard  ) discard  "$2";;
+  image    ) image    "$2";;
 
   *)
     if [ $OPT_LOCAL = true ]; then
