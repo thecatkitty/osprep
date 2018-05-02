@@ -12,9 +12,44 @@
 PROGRAM_NAME="Celones Operating System Preparation Utility"
 PROGRAM_VERSION="0.1.1805"
 
-FORMAT="text"
-LOCAL=0
+HTTP_USER_AGENT="Celones-OSPrep/$PROGRAM_VERSION"
 
+OPT_FORMAT="text"
+OPT_LOCAL=false
+
+############################### HELPER ROUTINES ################################
+function check_wget {
+  if [ `command -v wget` -eq "" ]; then
+    echo "This command requires wget, but it hasn't been found!" >&2
+    exit 1
+  fi
+}
+
+function check_make {
+  if [ `command -v make` -eq "" ]; then
+    echo "This command requires GNU Make, but it hasn't been found!" >&2
+    exit 1
+  fi
+}
+
+function http_header {
+  wget -S --spider "$URL" 2>&1 | grep "$HEADER: " | sed -e 's/^ *[^:]\+: //'
+}
+
+function http_download {
+  wget --progress=dot -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
+}
+
+function download_gauge {
+  http_download 2>&1 \
+  | grep "%" | sed -u -e 's/^ *[^ ]\+[\. ]\+//g' | sed -u -e 's/%.*//' \
+  | dialog \
+  --backtitle "$PROGRAM_NAME" \
+  --title "Downloading" \
+  --gauge "$URL" 10 100
+}
+
+################################### COMMANDS ###################################
 function interactive {
   tput smcup
 
@@ -65,8 +100,8 @@ exec 3>&1
 for i in "$@"; do
   case $i in
 
-    --local|-l ) LOCAL=1        ;;
-    --format=* ) FORMAT=${i#*=} ;;
+    --local|-l ) OPT_LOCAL=true     ;;
+    --format=* ) OPT_FORMAT=${i#*=} ;;
 
   esac
 done
@@ -90,6 +125,11 @@ case $1 in
   image          ) image       ;;
 
   *)
-    echo "$1 is not a valid OS Preparation Utility command!" >&2
+    if [ $OPT_LOCAL = true ]; then
+      interactive
+    else
+      echo "$1 is not a valid OS Preparation Utility command!" >&2
+      exit 1
+    fi
 
 esac
