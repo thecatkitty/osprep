@@ -1,6 +1,6 @@
 Operating System Preparation Utility
 ====================================
-Narzędzie przygotowawcze dla alternatywnych systemów operacyjnych. Operować będzie na plikach konfiguracyjnych (_„skryptów”_) w języku SH **albo** GNU Make. Pakiety będą skompresowane formatem XZ/TXZ, zaś ich metadane będą zapisane w _polskim_ (stosującym średniki) formacie CSV.
+Narzędzie przygotowawcze dla alternatywnych systemów operacyjnych. Operować będzie na plikach konfiguracyjnych będących skryptami GNU Make. Pakiety będą skompresowane formatem XZ/TXZ, zaś ich metadane będą zapisane w _polskim_ (stosującym średniki) formacie CSV.
 
 `osprep.sh` - wywołanie pełnoekranowego interfejsu interaktywnego (opartego o `dialog`) będącego _opakowaniem_ dla wszystkich poleceń tekstowych
 
@@ -105,7 +105,3 @@ Utworzenie obrazu uruchomieniowego (np. ISO, IMG, VFD).
 `osprep.sh image <dir>` / `make image`
 
 `<dir>` - katalog wyjściowy
-
-Format skryptu budowania obrazu
--------------------------------
-Prosto generowany skrypt SH **albo** GNU Make. (Jeszcze nie jestem pewien.)
