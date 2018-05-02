@@ -145,11 +145,8 @@ function download_package {
 }
 
 function extract_package {
-  # $FILE - output file path
-  DIRNAME=`dirname "$FILE"`
-  FILNAME=`basename -s .txz "$FILE"`
-  TARGET_DIR="${DIRNAME}/${FILNAME}"
-
+  # $FILE       - package file path
+  # $TARGET_DIR - extraction output directory
   mkdir -p "$TARGET_DIR"
   tar -xzf "$FILE" -C "$TARGET_DIR" --verbose
 }
@@ -381,20 +378,28 @@ function snap {
     exit 1
   fi
 
-  PKG_PATH="`rdn_to_path "$BASE"`.txz"
+  GENERAL_PATH=`rdn_to_path "$BASE"`
+  PKG_PATH="${GENERAL_PATH}.txz"
   FILE=".osprep/cache/${PKG_PATH}"
   URL="${REPO_URL}${PKG_PATH}"
+  TARGET_DIR=".osprep/cache/${GENERAL_PATH}"
+
   echo -n "Fetching base package \`$BASE\`... "
   download_package
   extract_package
+  cp "${TARGET_DIR}/settings.tsv" ".osprep/settings/${GENERAL_PATH}.tsv"
 
   while read LINE; do
-    PKG_PATH="`rdn_to_path "$LINE"`.txz"
+    GENERAL_PATH=`rdn_to_path "$LINE"`
+    PKG_PATH="${GENERAL_PATH}.txz"
     FILE=".osprep/cache/${PKG_PATH}"
     URL="${REPO_URL}${PKG_PATH}"
+    TARGET_DIR=".osprep/cache/${GENERAL_PATH}" 
+
     echo -n "Fetching package \`$LINE\`... "
     download_package
     extract_package
+    cp "${TARGET_DIR}/settings.tsv" ".osprep/settings/${GENERAL_PATH}.tsv"
   done < ".osprep/packages"
 }
 
