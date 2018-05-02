@@ -30,7 +30,7 @@ Aktualizacja lokalnego repozytorium konfiguracji zestawów.
 
 `osprep.sh update [<url>]`
 
-`<url>` - opcjonalny adres nowego repozytorium zdalnego
+`<url>` - opcjonalny adres nowego repozytorium zdalnego (domyślnie `http://pkg.svc.celones.pl/osprep/`)
 
 bases
 ------------
@@ -44,6 +44,8 @@ Wybór obrazu bazowego.
 
 `osprep.sh base <nazwa>[~<wersja>]`
 
+np. `osprep.sh base com.microsoft.ms-dos~8.0`
+
 packages
 -------------
 Wyświetlenie listy pakietów dostępnych dla danego obrazu bazowego.
@@ -55,6 +57,8 @@ add
 Dodanie pakietu.
 
 `osprep.sh add <nazwa>[~<wersja>]`
+
+`osprep.sh add com.jelcyn.zdzich`
 
 remove
 --------------
@@ -69,6 +73,8 @@ set
 `osprep.sh set <nazwa>` - wyświetlenie wartości
 
 `osprep.sh set <nazwa> <wartość>` - ustawienie wartości
+
+np. `osprep.sh set keyboard pl`
 
 apply
 -----
