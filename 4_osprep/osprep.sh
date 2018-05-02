@@ -127,17 +127,76 @@ function bases {
   if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
 
   else
-    cat "$FILE" | while read LINE; do
+    while read LINE; do
       IFS=';' read -r -a BASE_DESC <<< "$LINE"
       echo -e "${GREEN}${BASE_DESC[0]}${NC} ${BASE_DESC[1]}"
       echo -e "  ${BOLD}${BASE_DESC[2]}:${NC} ${BASE_DESC[3]}"
       echo ""
-    done
+    done < "$FILE"
   fi
 }
 
 function base {
-  echo "Select base image"
+  if [ -z "$1" -o \( "${1:0:1}" == '-' \) ]; then
+
+    if [ -f ".osprep/base" ]; then
+      cat ".osprep/base"
+      echo ''
+    else
+      echo "<none>"
+    fi
+
+  else
+
+    FILE=".osprep/cache/bases.csv"
+
+    if [ ! -f "$FILE" ]; then
+      echo "No repository! Update first." >&2
+      exit 1
+    fi
+
+    IFS="~" read -r -a PACK_NAME <<< "$1"
+    if [ "${PACK_NAME[1]}" ]; then
+
+      while read LINE; do
+        IFS=';' read -r -a BASE_DESC <<< "$LINE"
+        if [ "${BASE_DESC[0]}" == "${PACK_NAME[0]}" \
+          -a "${BASE_DESC[1]}" == "${PACK_NAME[1]}" ]; then
+
+          FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+          echo -n "$FOUND" > ".osprep/base"
+          echo "Successfully selected \`$FOUND\` as the base package."
+          exit 0
+
+        fi
+      done < "$FILE"
+
+      echo "Cannot find base package: \`$2\`!" >&2
+      exit 1
+
+    else
+
+      FOUND=''
+
+      while read LINE; do
+        IFS=';' read -r -a BASE_DESC <<< "$LINE"
+        if [ "${BASE_DESC[0]}" == "$1" ]; then
+          FOUND="${BASE_DESC[0]}~${BASE_DESC[1]}"
+        fi
+      done < "$FILE"
+
+      if [ -n "$FOUND" ]; then
+        echo -n "$FOUND" > ".osprep/base"
+        echo "Successfully selected \`$FOUND\` as the base package."
+        exit 0
+      fi
+
+      echo "Cannot find base package: \`$1\`!" >&2
+      exit 1
+
+    fi
+
+  fi
 }
 
 
@@ -160,16 +219,16 @@ case $1 in
   --version|-v   ) version     ;;
   --help|-h|help ) help        ;;
 
-  update         ) update      ;;
-  bases          ) bases       ;;
-  base           ) base        ;;
-  packages       ) packages    ;;
-  add            ) add         ;;
-  remove         ) remove      ;;
-  set            ) set         ;;
-  apply          ) apply       ;;
-  discard        ) discard     ;;
-  image          ) image       ;;
+  update         ) update      "$2";;
+  bases          ) bases       "$2";;
+  base           ) base        "$2";;
+  packages       ) packages    "$2";;
+  add            ) add         "$2";;
+  remove         ) remove      "$2";;
+  set            ) set         "$2";;
+  apply          ) apply       "$2";;
+  discard        ) discard     "$2";;
+  image          ) image       "$2";;
 
   *)
     if [ $OPT_LOCAL = true ]; then
