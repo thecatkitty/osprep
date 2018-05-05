@@ -441,11 +441,11 @@ function snap {
 }
 
 function set {
-
+  return
 }
 
 function reset {
-
+  return
 }
 
 function apply {
@@ -493,6 +493,7 @@ function discard {
 
 function image {
   # make -C <dir> image
+  return
 }
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
