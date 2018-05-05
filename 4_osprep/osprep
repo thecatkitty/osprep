@@ -239,6 +239,24 @@ function convert_settings {
   done < "$FILE"
 }
 
+function beautify_settings {
+  # stdin - CSV
+  while read LINE; do
+    IFS=';' read -r -a RECORD <<< "$LINE"
+    echo -n "${RECORD[0]} ["
+    if [ "${RECORD[3]}" == 'text' ]; then echo -n TEXT
+    elif [ "${RECORD[3]}" == 'check' ]; then echo -n BOOL
+    elif [ "${RECORD[3]}" == 'option' ]; then
+      if [ "${RECORD[4]}" ]; then echo -n "ENUM(${RECORD[4]})"
+      else echo -n "TEXT"; fi
+    fi
+    echo "] - ${RECORD[2]}"
+    if [ "${RECORD[1]}" ]; then echo "  ${RECORD[1]}"
+    else echo "<none>"; fi
+    echo ""
+  done
+}
+
 ################################### COMMANDS ###################################
 function interactive {
   tput smcup
@@ -510,13 +528,25 @@ function set {
   # See all settings
   if [ -z $1 ]; then
     find ".osprep/settings" -name "*.mk" | while read FILE; do
-      convert_settings
+      if [ $OPT_FORMAT == 'csv' ]; then convert_settings;
+      else convert_settings | beautify_settings; fi
     done
 
-  # See setting for one package
+  # See settings for one package
   elif [ -z $2 ]; then
-    FILE=".osprep/settings/`rdn_to_path "$1"`.mk"
-    convert_settings
+    # We've found Paamayim Nekudotayim, so the user wants just one value
+    if [ `echo "$1" | grep '::'` ]; then
+      PACKAGE=`echo "$1" | sed 's/::.*//'`
+      FILE=".osprep/settings/`rdn_to_path "$PACKAGE"`.mk"
+      convert_settings | grep "^$1;" | cut -d ';' -f 2
+
+    # No Paamayim Nekudotayim, so the user wants EVERYTHING
+    else
+      FILE=".osprep/settings/`rdn_to_path "$1"`.mk"
+      if [ $OPT_FORMAT == 'csv' ]; then convert_settings;
+      else convert_settings | beautify_settings; fi
+    fi
+
   fi
 
   return
