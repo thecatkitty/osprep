@@ -185,7 +185,7 @@ function prepare_apply {
   echo "" >> "${MAKEFILE_PATH}/Makefile"
 }
 
-function convert_settings {
+function mk_to_csv {
   # $FILE - package settings .mk file
   while read LINE; do
     RDN=`mk_to_rdn "$FILE" | sed -e 's/\s//g'`
@@ -237,6 +237,28 @@ function convert_settings {
       fi
     fi
   done < "$FILE"
+}
+
+function record_to_mk {
+  # $RECORD - settings record
+  echo -n `echo ${RECORD[0]} | sed -e 's/.*:://'`
+  echo -n ' = '
+  echo -n "${RECORD[1]}  "
+  echo -n '%'
+  if [ ${RECORD[3]} == 'text' ]; then echo -n 'T'
+  elif [ ${RECORD[3]} == 'check' ]; then echo -n 'C'
+  elif [ ${RECORD[3]} == 'option' ]; then echo -n 'O'
+  else
+    echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
+    exit 1
+  fi
+  echo -n " ${RECORD[2]}"
+
+  if [ ${RECORD[3]} == 'check' ]; then
+    echo -en '	'
+    echo -n "${RECORD[4]}" | sed -e 's/,/ /g'
+  fi
+  echo ""
 }
 
 function beautify_settings {
@@ -528,28 +550,60 @@ function set {
   # See all settings
   if [ -z $1 ]; then
     find ".osprep/settings" -name "*.mk" | while read FILE; do
-      if [ $OPT_FORMAT == 'csv' ]; then convert_settings;
-      else convert_settings | beautify_settings; fi
+      if [ $OPT_FORMAT == 'csv' ]; then mk_to_csv;
+      else mk_to_csv | beautify_settings; fi
     done
 
-  # See settings for one package
-  elif [ -z $2 ]; then
-    # We've found Paamayim Nekudotayim, so the user wants just one value
-    if [ `echo "$1" | grep '::'` ]; then
+  # Access settings for one package
+  elif [ `echo "$1" | grep -P '^[a-z0-9]+(\.[a-z0-9]+)*~[a-z0-9]+(\.[a-z0-9]+)*(::[a-z0-9]+)?$'` ]; then
+  
+    # Get values
+    if [ -z $2 ]; then
+      # We've found Paamayim Nekudotayim, so the user wants just one value
+      if [ `echo "$1" | grep '::'` ]; then
+        PACKAGE=`echo "$1" | sed 's/::.*//'`
+        FILE=".osprep/settings/`rdn_to_path "$PACKAGE"`.mk"
+        mk_to_csv | grep "^$1;" | cut -d ';' -f 2
+
+      # No Paamayim Nekudotayim, so the user wants EVERYTHING
+      else
+        FILE=".osprep/settings/`rdn_to_path "$1"`.mk"
+        if [ $OPT_FORMAT == 'csv' ]; then mk_to_csv;
+        else mk_to_csv | beautify_settings; fi
+      fi
+
+    # The user wants to modify a value
+    elif [ `echo "$1" | grep '::'` ]; then
       PACKAGE=`echo "$1" | sed 's/::.*//'`
       FILE=".osprep/settings/`rdn_to_path "$PACKAGE"`.mk"
-      convert_settings | grep "^$1;" | cut -d ';' -f 2
+      if [ ! -f "$FILE" ]; then
+        echo "Cannot set value for package \`$PACKAGE\`! Package not found." >&2
+        exit 1
+      fi
 
-    # No Paamayim Nekudotayim, so the user wants EVERYTHING
+      LINE=`mk_to_csv | grep "^$1;"`
+      if [ -z "$LINE" ]; then
+        echo "Cannot set value for \`$1\`! Key not found." >&2
+        exit 1
+      fi
+
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      RECORD[1]="$2"
+      record_to_mk
+
+    # No Paamayim Nekudotayim means a mistake here...
     else
-      FILE=".osprep/settings/`rdn_to_path "$1"`.mk"
-      if [ $OPT_FORMAT == 'csv' ]; then convert_settings;
-      else convert_settings | beautify_settings; fi
+      echo "Cannot change value of a package!" >&2
+      exit 1
+
     fi
 
-  fi
+  # The user screwed up
+  else
+    echo "\`$1\` is not a valid key or package name!" >&2
+    exit 1
 
-  return
+  fi
 }
 
 function reset {
