@@ -21,6 +21,7 @@ GREEN="\033[0;32m"
 OPT_FORMAT="text"
 OPT_LOCAL=false
 REPO_URL="http://pkg.svc.celones.pl/osprep/"
+REPO_LOCAL="$HOME/.osprep/"
 
 ############################### HELPER ROUTINES ################################
 function check_wget {
@@ -91,7 +92,7 @@ function find_package {
   # $1    - package to be found
 
   FOUND=''
-  IFS="~" read -r -a PACK_NAME <<< "$1"
+  IFS='~' read -r -a PACK_NAME <<< "$1"
   if [ "${PACK_NAME[1]}" ]; then
 
     while read LINE; do
@@ -167,7 +168,7 @@ function prepare_apply {
   
   cat ".osprep/settings/${GENERAL_PATH}.mk" >> "${MAKEFILE_PATH}/Makefile"
   echo "" >> "${MAKEFILE_PATH}/Makefile"
-  cat ".osprep/cache/${GENERAL_PATH}/apply.mk" >> "${MAKEFILE_PATH}/Makefile"
+  cat "${REPO_LOCAL}${GENERAL_PATH}/apply.mk" >> "${MAKEFILE_PATH}/Makefile"
   echo "" >> "${MAKEFILE_PATH}/Makefile"
 }
 
@@ -204,12 +205,15 @@ function help {
 }
 
 function update {
+  # $1 (optional) - alternative remote repository URL
+  check_wget
+
   if [ "$1" ]; then
     REPO_URL="$1"
-    echo -n "$1" > ".osprep/remote"
+    echo -n "$1" > "${REPO_LOCAL}remote"
   fi
 
-  FILE=".osprep/cache/bases.csv"
+  FILE="${REPO_LOCAL}bases.csv"
   URL="${REPO_URL}bases.csv"
 
   mkdir -p `dirname "$FILE"`
@@ -236,7 +240,7 @@ function update {
 }
 
 function bases {
-  FILE=".osprep/cache/bases.csv"
+  FILE="${REPO_LOCAL}bases.csv"
 
   if [ ! -f "$FILE" ]; then update; fi
 
@@ -255,7 +259,7 @@ function base {
 
   else
 
-    FILE=".osprep/cache/bases.csv"
+    FILE="${REPO_LOCAL}bases.csv"
 
     if [ ! -f "$FILE" ]; then
       echo "No repository! Update first." >&2
@@ -284,11 +288,12 @@ function packages {
   CSV_PATH="`rdn_to_path "$BASE"`.csv"
 
   URL="${REPO_URL}${CSV_PATH}"
-  FILE=".osprep/cache/${CSV_PATH}"
+  FILE="${REPO_LOCAL}${CSV_PATH}"
 
   mkdir -p `dirname "$FILE"`
 
   if [ -f "$FILE" -a \( $OPT_LOCAL == false \) ]; then
+    check_wget
     HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
     if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
       rm "$FILE"
@@ -302,6 +307,7 @@ function packages {
   fi
 
   if [ ! -f "$FILE" ]; then
+    check_wget
     echo "Fetching the package list..."
     http_download
     if [ -f "$FILE" ]; then
@@ -323,7 +329,7 @@ function add {
   fi
 
   CSV_PATH="`rdn_to_path "$BASE"`.csv"
-  FILE=".osprep/cache/${CSV_PATH}"
+  FILE="${REPO_LOCAL}${CSV_PATH}"
 
   if [ ! -f "$FILE" ]; then
     echo "Cannot read the package list! Run \`osprep packages\` first." >&2
@@ -372,7 +378,7 @@ function list {
   fi
 
   CSV_PATH="`rdn_to_path "$BASE"`.csv"
-  FILE=".osprep/cache/${CSV_PATH}"
+  FILE="${REPO_LOCAL}${CSV_PATH}"
 
   if [ ! -f "$FILE" ]; then
     echo "Cannot read the package list! Run \`osprep packages\` first." >&2
@@ -392,6 +398,8 @@ function list {
 }
 
 function snap {
+  check_wget
+
   BASE=`base`
   if [ "$BASE" == "<none>" ]; then
     echo "Select base package first!" >&2
@@ -401,9 +409,9 @@ function snap {
   GENERAL_PATH=`rdn_to_path "$BASE"`
   PKG_PATH="${GENERAL_PATH}.txz"
   CFG_PATH=".osprep/settings/${GENERAL_PATH}.mk"
-  FILE=".osprep/cache/${PKG_PATH}"
+  FILE="${REPO_LOCAL}${PKG_PATH}"
   URL="${REPO_URL}${PKG_PATH}"
-  TARGET_DIR=".osprep/cache/${GENERAL_PATH}"
+  TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}"
 
   echo -n "Fetching base package \`$BASE\`... "
   download_package
@@ -416,9 +424,9 @@ function snap {
     GENERAL_PATH=`rdn_to_path "$LINE"`
     PKG_PATH="${GENERAL_PATH}.txz"
     CFG_PATH=".osprep/settings/${GENERAL_PATH}.mk"
-    FILE=".osprep/cache/${PKG_PATH}"
+    FILE="${REPO_LOCAL}${PKG_PATH}"
     URL="${REPO_URL}${PKG_PATH}"
-    TARGET_DIR=".osprep/cache/${GENERAL_PATH}" 
+    TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}" 
 
     echo -n "Fetching package \`$LINE\`... "
     download_package
@@ -429,6 +437,8 @@ function snap {
 }
 
 function apply {
+  check_make
+
   BASE=`base`
   if [ "$BASE" == "<none>" ]; then
     echo "Select base package first!" >&2
@@ -460,7 +470,7 @@ function discard {
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
 exec 3>&1
 
-if [ -f ".osprep/remote" ]; then REPO_URL=`cat .osprep/remote`; fi
+if [ -f "${REPO_LOCAL}remote" ]; then REPO_URL=`cat ${REPO_LOCAL}remote`; fi
 
 for i in "$@"; do
   case $i in
@@ -489,7 +499,7 @@ case $1 in
   #set      ) set      "$2";;
   apply    ) apply    "$2";;
   discard  ) discard  "$2";;
-  image    ) image    "$2";;
+  #image    ) image    "$2";;
 
   *)
     if [ $OPT_LOCAL = true ]; then
