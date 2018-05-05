@@ -73,6 +73,15 @@ function rdn_to_path {
   fi
 }
 
+function mk_to_rdn {
+  echo -n $1 | sed -e 's/\.osprep\/settings\///g' | sed -e 's/\.mk$//g' | sed -e 's/\//./g'
+}
+
+function trim {
+  # $1 - string for the whitespace removal
+  echo -n "$1" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
+}
+
 function print_list {
   # $FILE - input CSV file
   if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
@@ -174,6 +183,60 @@ function prepare_apply {
   echo "" >> "${MAKEFILE_PATH}/Makefile"
   cat "${REPO_LOCAL}${GENERAL_PATH}/apply.mk" >> "${MAKEFILE_PATH}/Makefile"
   echo "" >> "${MAKEFILE_PATH}/Makefile"
+}
+
+function convert_settings {
+  # $FILE - package settings .mk file
+  while read LINE; do
+    RDN=`mk_to_rdn "$FILE" | sed -e 's/\s//g'`
+    if [ `echo "$LINE" | sed -e 's/\s//g'` ]; then
+      IFS='#' read -r -a SPLIT <<< "$LINE"
+      STATEMENT=`trim "${SPLIT[0]}"`
+      COMMENT="${SPLIT[1]}"
+      if [ "$STATEMENT" ]; then
+        IFS='=' read -r -a SPLIT <<< "$STATEMENT"
+
+        KEY=`trim "${SPLIT[0]}"`
+        VALUE=`trim "${SPLIT[1]}"`
+
+        echo -n "${RDN}::${KEY};${VALUE}"
+
+        if [ "`echo $COMMENT | grep '^%[^\s] '`" ]; then
+
+          IFS='	' read -r -a PARAMETERS <<< "${COMMENT:3}"
+
+          CAPTION="`trim "${PARAMETERS[0]}"`"
+          if [ "$CAPTION" ]; then
+
+            echo -n ";$CAPTION"
+
+            TYPECHAR=`echo $COMMENT | grep -o '^%.' | grep -o '.$'`
+            if [ $TYPECHAR == 'T' ]; then echo -n ';text'
+            elif [ $TYPECHAR == 'C' ]; then echo -n ';check'
+
+            elif [ $TYPECHAR == 'O' ]; then
+              echo -n ';option;'
+              read -r -a OPTIONS <<< "${PARAMETERS[1]}"
+
+              i=0
+              while [ "${OPTIONS[$i]}" ]; do
+                if [ $i -gt 0 ]; then echo -n ','; fi
+                echo -n ${OPTIONS[$i]}
+                let i++
+              done
+            fi
+
+          else
+            echo -n ';$KEY;text'
+          fi
+
+        else
+          echo -n ';$KEY;text'
+        fi
+        echo ""
+      fi
+    fi
+  done < "$FILE"
 }
 
 ################################### COMMANDS ###################################
@@ -441,6 +504,21 @@ function snap {
 }
 
 function set {
+  # $1 (optional) - key to get/set
+  # $2 (optional) - new value
+
+  # See all settings
+  if [ -z $1 ]; then
+    find ".osprep/settings" -name "*.mk" | while read FILE; do
+      convert_settings
+    done
+
+  # See setting for one package
+  elif [ -z $2 ]; then
+    FILE=".osprep/settings/`rdn_to_path "$1"`.mk"
+    convert_settings
+  fi
+
   return
 }
 
