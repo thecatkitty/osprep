@@ -25,14 +25,14 @@ REPO_LOCAL="$HOME/.osprep/"
 
 ############################### HELPER ROUTINES ################################
 function check_wget {
-  if [ `command -v wget` -eq "" ]; then
+  if [ -z `command -v wget` ]; then
     echo "This command requires wget, but it hasn't been found!" >&2
     exit 1
   fi
 }
 
 function check_make {
-  if [ `command -v make` -eq "" ]; then
+  if [ -z `command -v make` ]; then
     echo "This command requires GNU Make, but it hasn't been found!" >&2
     exit 1
   fi
@@ -159,11 +159,15 @@ function prepare_apply {
   # $1       - package ID
   GENERAL_PATH=`rdn_to_path "$1"`
   MAKEFILE_PATH="${MAKEDIR}/${GENERAL_PATH}"
+  BASE=`base`
 
   mkdir -p "$MAKEFILE_PATH"
 
   echo "HTTPDOWNLOAD = wget --no-verbose --show-progress --progress=bar -U \"$HTTP_USER_AGENT\" -O" > "${MAKEFILE_PATH}/Makefile"
   echo "OUT = \"`realpath "$TARGET"`\"" >> "${MAKEFILE_PATH}/Makefile"
+  echo "REPO = ${REPO_LOCAL}" >> "${MAKEFILE_PATH}/Makefile"
+  echo "MOUNT = .osprep/mount" >> "${MAKEFILE_PATH}/Makefile"
+  echo "BASE_SETTINGS = .osprep/settings/`rdn_to_path $BASE`.mk" >> "${MAKEFILE_PATH}/Makefile"
   echo "" >> "${MAKEFILE_PATH}/Makefile"
   
   cat ".osprep/settings/${GENERAL_PATH}.mk" >> "${MAKEFILE_PATH}/Makefile"
@@ -436,6 +440,14 @@ function snap {
   done < ".osprep/packages"
 }
 
+function set {
+
+}
+
+function reset {
+
+}
+
 function apply {
   check_make
 
@@ -446,18 +458,30 @@ function apply {
   fi
   TARGET="target"
   if [ "$1" ]; then TARGET="$1"; fi
+  rm -rf "$TARGET"
   mkdir -p "$TARGET"
 
   MAKEDIR=".osprep/make"
+  rm -rf "$MAKEDIR"
+  mkdir -p "$MAKEDIR"
+
   touch ".osprep/packages"
-  prepare_apply "$BASE"
   while read LINE; do prepare_apply "$LINE"; done < ".osprep/packages"
 
+  echo -e "Processing packages..."
   RESTORE_DIR="$PWD"
-  find `realpath "$MAKEDIR"` -type d | grep '~' | while read LINE; do
+  find `realpath "$MAKEDIR"` -type d | grep -E '~[^/]+$' | while read LINE; do
+    echo -e "\nProcessing $LINE..."
     cd "$LINE"
     make apply
+    if [ $? -ne 0 ]; then exit 1; fi
   done
+  cd "$RESTORE_DIR"
+
+  echo -e "\nProcessing base package..."
+  prepare_apply "$BASE"
+  cd "${MAKEDIR}/`rdn_to_path "$BASE"`"
+  make apply
   cd "$RESTORE_DIR"
 }
 
@@ -465,6 +489,10 @@ function discard {
   rm -f ".osprep/packages"
   rm -rf ".osprep/settings"
   rm -rf ".osprep/make"
+}
+
+function image {
+  # make -C <dir> image
 }
 
 ######################### SCRIPT ARGUMENTS PROCESSING ##########################
@@ -496,10 +524,11 @@ case $1 in
   remove   ) remove   "$2";;
   list     ) list     "$2";;
   snap     ) snap     "$2";;
-  #set      ) set      "$2";;
+  set      ) set      "$2" "$3";;
+  reset    ) reset    "$2";;
   apply    ) apply    "$2";;
   discard  ) discard  "$2";;
-  #image    ) image    "$2";;
+  image    ) image    "$2";;
 
   *)
     if [ $OPT_LOCAL = true ]; then
