@@ -456,6 +456,68 @@ function simple_msgbox {
     --msgbox "$2" 10 60
 }
 
+function package_selector {
+  # $CAPTION - dialog caption
+  TMPFIL=`mktmp`
+
+  cat \
+<< EOF > $TMPFIL
+#!/bin/bash
+
+while true; do
+
+exec 4>&1
+SELECTION=\`dialog \\
+  --backtitle "$PROGRAM_NAME" \\
+  --title "Select package" \\
+  --clear \\
+  --menu "$CAPTION" 0 0 10 \\
+EOF
+
+  KEYS='""'
+  i=0
+  while read LINE; do
+    if [ "$LINE" ]; then
+      let i++
+      KEYS="${KEYS} \"${LINE}\""
+      echo "  $i \"${LINE}\" \\" >> "$TMPFIL"
+    fi
+  done < '.osprep/packages'
+  echo '  2>&1 1>&4`' >> "$TMPFIL"
+
+  cat \
+<< 'EOF' >> $TMPFIL
+RVAL=$?
+exec 4>&-
+EOF
+  
+  echo "KEYS=($KEYS)" >> "$TMPFIL"
+  echo "DETAILS=($DETAILS)" >> "$TMPFIL"
+
+  cat \
+<< EOF >> $TMPFIL
+if [ \$RVAL -eq $DIALOG_OK ]; then
+  echo -n "\${KEYS[\$SELECTION]} " >&2
+  exit $DIALOG_OK
+else
+  exit \$RVAL
+fi
+
+done
+
+EOF
+
+  chmod +x "$TMPFIL"
+  "$TMPFIL"
+  cp "$TMPFIL" "$HOME/osprep_tmp.sh"
+
+  rm "$TMPFIL"
+}
+
+function settings_menu {
+  CAPTION="Select package to change its settings:" dialog --msgbox `package_selector` 10 60
+}
+
 ################################### COMMANDS ###################################
 ##### Show version information
 function version {
@@ -1025,6 +1087,36 @@ function interactive {
 
       5) # Snap packages
         IOPT_DIALOG=true snap
+        ;;
+
+      6) # Change settings
+        settings_menu
+        ;;
+
+      7) # Apply changes
+        apply
+        ;;
+
+      8) # Discard changes
+        discard
+        ;;
+
+      9) # Create image
+        exec 3>&1
+        INPUT=`dialog \
+          --backtitle "$PROGRAM_NAME" \
+          --title "Create operating system image" \
+          --inputbox "Type image filename:" 10 60 \
+          2>&1 1>&3`
+        RVAL=$?
+        exec 3>&-
+
+        case $RVAL in
+          $DIALOG_CANCEL ) continue ;;
+          $DIALOG_ESC    ) exit 1   ;;
+        esac
+
+        IOPT_DIALOG=true image "$INPUT"
         ;;
     esac
   done
