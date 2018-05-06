@@ -9,6 +9,7 @@
 #
 # Licensed under the MIT License.
 
+############################### GLOBAL VARIABLES ###############################
 PROGRAM_NAME="Celones Operating System Preparation Utility"
 PROGRAM_VERSION="0.1.1805"
 
@@ -24,6 +25,7 @@ REPO_URL="http://charlotte.celones.pl/osprep/"
 REPO_LOCAL="$HOME/.osprep/"
 
 ############################### HELPER ROUTINES ################################
+############## Software requirements checking ##############
 function check_wget {
   if [ -z `command -v wget` ]; then
     echo "This command requires wget, but it hasn't been found!" >&2
@@ -38,6 +40,7 @@ function check_make {
   fi
 }
 
+##################### Wrappers for Wget ####################
 function http_header {
   # $URL - remote resource
   # $1   - name of the HTTP header
@@ -64,6 +67,7 @@ function download_gauge {
   if [ $? -ne 0 ]; then rm -f "$FILE"; fi
 }
 
+############## Package name<->path converters ##############
 function rdn_to_path {
   IFS='~' read -r -a SPLIT <<< "$1"
   if [ -n "${SPLIT[1]}" ]; then
@@ -82,20 +86,84 @@ function trim {
   echo -n "$1" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
 }
 
-function print_list {
-  # $FILE - input CSV file
-  if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
+################ Settings format converters ################
+function mk_to_csv {
+  # $FILE - package settings .mk file
+  while read LINE; do
+    RDN=`mk_to_rdn "$FILE" | sed -e 's/\s//g'`
+    if [ `echo "$LINE" | sed -e 's/\s//g'` ]; then
+      IFS='#' read -r -a SPLIT <<< "$LINE"
+      STATEMENT=`trim "${SPLIT[0]}"`
+      COMMENT="${SPLIT[1]}"
+      if [ "$STATEMENT" ]; then
+        IFS='=' read -r -a SPLIT <<< "$STATEMENT"
 
-  else
-    while read LINE; do
-      IFS=';' read -r -a RECORD <<< "$LINE"
-      echo -e "${GREEN}${RECORD[0]}${NC} ${RECORD[1]}"
-      echo -e "  ${BOLD}${RECORD[2]}:${NC} ${RECORD[3]}"
-      echo ''
-    done < "$FILE"
-  fi
+        KEY=`trim "${SPLIT[0]}"`
+        VALUE=`trim "${SPLIT[1]}"`
+
+        echo -n "${RDN}::${KEY};${VALUE}"
+
+        if [ "`echo $COMMENT | grep -P '^%[^\s][[:space:]]'`" ]; then
+
+          IFS='	' read -r -a PARAMETERS <<< "${COMMENT:3}"
+
+          CAPTION="`trim "${PARAMETERS[0]}"`"
+          if [ "$CAPTION" ]; then
+
+            echo -n ";$CAPTION"
+
+            TYPECHAR=`echo $COMMENT | grep -o '^%.' | grep -o '.$'`
+            if [ $TYPECHAR == 'T' ]; then echo -n ';text'
+            elif [ $TYPECHAR == 'C' ]; then echo -n ';check'
+
+            elif [ $TYPECHAR == 'O' ]; then
+              echo -n ';option;'
+              read -r -a OPTIONS <<< "${PARAMETERS[1]}"
+
+              i=0
+              while [ "${OPTIONS[$i]}" ]; do
+                if [ $i -gt 0 ]; then echo -n ','; fi
+                echo -n ${OPTIONS[$i]}
+                let i++
+              done
+            fi
+
+          else
+            echo -n ";$KEY;text"
+          fi
+
+        else
+          echo -n ";$KEY;text"
+        fi
+        echo ''
+      fi
+    fi
+  done < "$FILE"
 }
 
+function record_to_mk {
+  # $RECORD - settings record
+  echo -n `echo ${RECORD[0]} | sed -e 's/.*:://'`
+  echo -n ' = '
+  echo -n "${RECORD[1]}  "
+  echo -n '#%'
+  if [ ${RECORD[3]} == 'text' ]; then echo -n 'T'
+  elif [ ${RECORD[3]} == 'check' ]; then echo -n 'C'
+  elif [ ${RECORD[3]} == 'option' ]; then echo -n 'O'
+  else
+    echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
+    exit 1
+  fi
+  echo -n "	${RECORD[2]}"
+
+  if [ ${RECORD[3]} == 'option' ]; then
+    echo -en '	'
+    echo -n "${RECORD[4]}" | sed -e 's/,/ /g'
+  fi
+  echo ''
+}
+
+####################### Package logic ######################
 function find_package {
   # $FILE - CSV file
   # $1    - package to be found
@@ -186,80 +254,19 @@ function prepare_apply {
   echo '' >> "${MAKEFILE_PATH}/Makefile"
 }
 
-function mk_to_csv {
-  # $FILE - package settings .mk file
-  while read LINE; do
-    RDN=`mk_to_rdn "$FILE" | sed -e 's/\s//g'`
-    if [ `echo "$LINE" | sed -e 's/\s//g'` ]; then
-      IFS='#' read -r -a SPLIT <<< "$LINE"
-      STATEMENT=`trim "${SPLIT[0]}"`
-      COMMENT="${SPLIT[1]}"
-      if [ "$STATEMENT" ]; then
-        IFS='=' read -r -a SPLIT <<< "$STATEMENT"
+#################### Output beautifiers ####################
+function print_package_list {
+  # $FILE - input CSV file
+  if [ $OPT_FORMAT == "csv" ]; then cat "$FILE"
 
-        KEY=`trim "${SPLIT[0]}"`
-        VALUE=`trim "${SPLIT[1]}"`
-
-        echo -n "${RDN}::${KEY};${VALUE}"
-
-        if [ "`echo $COMMENT | grep -P '^%[^\s][[:space:]]'`" ]; then
-
-          IFS='	' read -r -a PARAMETERS <<< "${COMMENT:3}"
-
-          CAPTION="`trim "${PARAMETERS[0]}"`"
-          if [ "$CAPTION" ]; then
-
-            echo -n ";$CAPTION"
-
-            TYPECHAR=`echo $COMMENT | grep -o '^%.' | grep -o '.$'`
-            if [ $TYPECHAR == 'T' ]; then echo -n ';text'
-            elif [ $TYPECHAR == 'C' ]; then echo -n ';check'
-
-            elif [ $TYPECHAR == 'O' ]; then
-              echo -n ';option;'
-              read -r -a OPTIONS <<< "${PARAMETERS[1]}"
-
-              i=0
-              while [ "${OPTIONS[$i]}" ]; do
-                if [ $i -gt 0 ]; then echo -n ','; fi
-                echo -n ${OPTIONS[$i]}
-                let i++
-              done
-            fi
-
-          else
-            echo -n ";$KEY;text"
-          fi
-
-        else
-          echo -n ";$KEY;text"
-        fi
-        echo ''
-      fi
-    fi
-  done < "$FILE"
-}
-
-function record_to_mk {
-  # $RECORD - settings record
-  echo -n `echo ${RECORD[0]} | sed -e 's/.*:://'`
-  echo -n ' = '
-  echo -n "${RECORD[1]}  "
-  echo -n '#%'
-  if [ ${RECORD[3]} == 'text' ]; then echo -n 'T'
-  elif [ ${RECORD[3]} == 'check' ]; then echo -n 'C'
-  elif [ ${RECORD[3]} == 'option' ]; then echo -n 'O'
   else
-    echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
-    exit 1
+    while read LINE; do
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      echo -e "${GREEN}${RECORD[0]}${NC} ${RECORD[1]}"
+      echo -e "  ${BOLD}${RECORD[2]}:${NC} ${RECORD[3]}"
+      echo ''
+    done < "$FILE"
   fi
-  echo -n "	${RECORD[2]}"
-
-  if [ ${RECORD[3]} == 'option' ]; then
-    echo -en '	'
-    echo -n "${RECORD[4]}" | sed -e 's/,/ /g'
-  fi
-  echo ''
 }
 
 function beautify_settings {
@@ -281,6 +288,7 @@ function beautify_settings {
 }
 
 ################################### COMMANDS ###################################
+##### Open interactive dialog-based UI
 function interactive {
   tput smcup
 
@@ -301,6 +309,7 @@ function interactive {
 
 }
 
+##### Show version information
 function version {
   echo $PROGRAM_NAME
   echo "Version $PROGRAM_VERSION"
@@ -308,10 +317,12 @@ function version {
   echo "Licensed under the MIT License."
 }
 
+##### Show usage help
 function help {
   echo "Program help"
 }
 
+##### Update base packages list or change repository
 function update {
   # $1 (optional) - alternative remote repository URL
   check_wget
@@ -347,14 +358,16 @@ function update {
   fi
 }
 
+##### Show available base packages
 function bases {
   FILE="${REPO_LOCAL}bases.csv"
 
   if [ ! -f "$FILE" ]; then update; fi
 
-  print_list
+  print_package_list
 }
 
+##### Show or select base package for the project
 function base {
   if [ -z "$1" -o \( "${1:0:1}" == '-' \) ]; then
 
@@ -387,6 +400,7 @@ function base {
   fi
 }
 
+##### Show packages available for the selected base
 function packages {
   BASE=`base`
   if [ "$BASE" == "<none>" ]; then
@@ -427,9 +441,10 @@ function packages {
     fi
   fi
 
-  print_list
+  print_package_list
 }
 
+##### Add package into the project
 function add {
   BASE=`base`
   if [ "$BASE" == "<none>" ]; then
@@ -461,6 +476,7 @@ function add {
   fi
 }
 
+##### Remove package from the project
 function remove {
   FILE=".osprep/packages"
   FOUND=`grep -E "^$1(~.*)?$" < "$FILE"`
@@ -479,6 +495,7 @@ function remove {
   fi
 }
 
+##### Show installed packages
 function list {
   BASE=`base`
   if [ "$BASE" == "<none>" ]; then
@@ -502,10 +519,11 @@ function list {
   done < ".osprep/packages"
 
   FILE="$TMP"
-  print_list
+  print_package_list
   rm "$TMP"
 }
 
+##### Download and extract build packages
 function snap {
   check_wget
 
@@ -545,6 +563,7 @@ function snap {
   done < ".osprep/packages"
 }
 
+##### Show or modify configuration values
 function set {
   # $1 (optional) - key to get/set
   # $2 (optional) - new value
@@ -639,6 +658,7 @@ function set {
   fi
 }
 
+##### Restore default configuration settings
 function reset {
   while read PACKAGE; do
     echo $PACKAGE
@@ -646,6 +666,7 @@ function reset {
   return
 }
 
+##### Apply project configuration (prepare target)
 function apply {
   check_make
 
@@ -677,12 +698,14 @@ function apply {
   make -C "${MAKEDIR}/`rdn_to_path "$BASE"`" apply
 }
 
+##### Delete all settings and package choices
 function discard {
   rm -f ".osprep/packages"
   rm -rf ".osprep/settings"
   rm -rf ".osprep/make"
 }
 
+##### Create image file
 function image {
   MAKEDIR=".osprep/make"
   BASE=`base`
