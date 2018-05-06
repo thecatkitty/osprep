@@ -67,12 +67,14 @@ function http_download {
   mkdir -p `dirname "$FILE"`
   wget --no-verbose --show-progress --progress=bar -U "$HTTP_USER_AGENT" -O "$FILE" "$URL"
   if [ $? -ne 0 ]; then rm -f "$FILE"; fi
+  if [ ! -s "$FILE" ]; then rm -f "$FILE"; fi
 }
 
 function download_gauge {
   # $URL   - remote resource
   # $FILE  - output file name
   # $TITLE - dialog title
+  mkdir -p `dirname "$FILE"`
   wget --progress=dot -U "$HTTP_USER_AGENT" -O "$FILE" "$URL" 2>&1 \
   | grep "%" | sed -u -e 's/^ *[^ ]\+[\. ]\+//g' | sed -u -e 's/%.*//' \
   | dialog \
@@ -80,6 +82,7 @@ function download_gauge {
   --title "$TITLE" \
   --gauge "Downloading $URL..." 10 60
   if [ $? -ne 0 ]; then rm -f "$FILE"; fi
+  if [ ! -s "$FILE" ]; then rm -f "$FILE"; fi
 }
 
 function update_needed {
@@ -212,14 +215,14 @@ SELECTION=\`dialog \\
   --backtitle "$PROGRAM_NAME" \\
   --title "$TITLE" \\
   --clear \\
-  --help-button --help-label Details \\
+  --item-help \\
   --default-item \$LASTITEM \\
 EOF
 
   if [ "$1" != 'checklist' ]; then
     echo "  --menu \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
   else
-    echo "  --item-help --checklist \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
+    echo "  --checklist \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
   fi
 
   KEYS='""'
@@ -232,11 +235,10 @@ EOF
       KEYS="${KEYS} \"${RECORD[0]}\""
       echo -n "  $i \"${RECORD[1]}\" " >> "$TMPFIL"
       if [ "$1" == 'checklist' ]; then
-        if [ "${RECORD[3]}" == '1' ]; then echo "on \"${RECORD[2]}\" \\" >> "$TMPFIL"
-        else echo "off \"${RECORD[2]}\" \\"; fi >> "$TMPFIL"
-      else
-        echo "\\" >> $TMPFIL
+        if [ "${RECORD[3]}" == '1' ]; then echo -n "on " >> "$TMPFIL"
+        else echo -n "off "; fi >> "$TMPFIL"
       fi
+      echo "\"${RECORD[2]}\" \\" >> "$TMPFIL"
       DETAILS="${DETAILS} \"${RECORD[2]}\""
     fi
   done
@@ -259,14 +261,6 @@ if [ \$RVAL -eq $DIALOG_OK ]; then
     echo -n "\${KEYS[\$i]} " >&2
   done
   exit $DIALOG_OK
-elif [ \$RVAL -eq $DIALOG_HELP ]; then
-  HELP=\`echo \$SELECTION | sed 's/^.* //' \`
-  dialog \\
-  --backtitle "$PROGRAM_NAME" \\
-  --title "\${KEYS[\$HELP]}" \\
-  --msgbox "\${DETAILS[\$HELP]}" 10 60
-  LASTITEM=\$HELP
-  continue
 else
   exit \$RVAL
 fi
@@ -376,7 +370,7 @@ function download_package {
     fi
 
     if [ -f "$FILE" ]; then
-      if [ "$IOPT_DIALOG "== false ]; then echo "Package download completed."; fi
+      if [ "$IOPT_DIALOG" == false ]; then echo "Package download completed."; fi
     
     elif [ "$IOPT_DIALOG" == false ]; then
       echo "Couldn't download package!" >&2
@@ -1001,7 +995,7 @@ function interactive {
         CAPTION='Please select base package:'
         exec 3>&1
         NEWBASE=`IOPT_DIALOG=true OPT_FORMAT=csv bases \
-        | sed -e 's/;/~/' | sed -e 's/"/\\"/g' \
+        | sed -e 's/;/~/' | sed -e 's/"/\\\\"/g' \
         | csv_to_menu 2>&1 1>&3`
         exec 3>&-
         if [ $NEWBASE ]; then
@@ -1015,7 +1009,7 @@ function interactive {
         CAPTION='Please select desired packages:'
         exec 3>&1
         SELECTIONS=`mark_common_packages \
-        | sed -e 's/;/~/' | sed -e 's/"/\\"/g' \
+        | sed -e 's/;/~/' | sed -e 's/"/\\\\"/g' \
         | csv_to_menu 'checklist' 2>&1 1>&3`
         exec 3>&-
 
