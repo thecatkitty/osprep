@@ -20,7 +20,7 @@ GREEN="\033[0;32m"
 
 OPT_FORMAT="text"
 OPT_LOCAL=false
-REPO_URL="http://localhost/osprep/"
+REPO_URL="http://charlotte.celones.pl/osprep/"
 REPO_LOCAL="$HOME/.osprep/"
 
 ############################### HELPER ROUTINES ################################
@@ -640,6 +640,9 @@ function set {
 }
 
 function reset {
+  while read PACKAGE; do
+    echo $PACKAGE
+  done
   return
 }
 
