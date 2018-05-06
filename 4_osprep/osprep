@@ -487,8 +487,16 @@ function remove {
     rm "$FILE"
     mv "$TMP" "$FILE"
 
-    echo -n "Successfully removed from the project the following packages: "
-    echo $FOUND
+    if [ $FORMAT == 'csv' ]; then
+      read -r -a LIST <<< "$FOUND";
+      i=0
+      while [ "${LIST[$i]}" ]; do echo "${LIST[$i]}"; done
+
+    else
+      echo -n "Successfully removed from the project the following packages: "
+      echo $FOUND
+    fi
+
   else
     echo "Cannot find any packages matching \`$1\` in the project!" >&2
     exit 1
