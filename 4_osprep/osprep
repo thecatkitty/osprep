@@ -219,7 +219,7 @@ EOF
   if [ "$1" != 'checklist' ]; then
     echo "  --menu \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
   else
-    echo "  --checklist \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
+    echo "  --item-help --checklist \"$CAPTION\" 0 0 10 \\" >> $TMPFIL
   fi
 
   KEYS='""'
@@ -232,8 +232,8 @@ EOF
       KEYS="${KEYS} \"${RECORD[0]}\""
       echo -n "  $i \"${RECORD[1]}\" " >> "$TMPFIL"
       if [ "$1" == 'checklist' ]; then
-        if [ "${RECORD[3]}" == '1' ]; then echo "on \\" >> "$TMPFIL"
-        else echo "off \\"; fi >> "$TMPFIL"
+        if [ "${RECORD[3]}" == '1' ]; then echo "on \"${RECORD[2]}\" \\" >> "$TMPFIL"
+        else echo "off \"${RECORD[2]}\" \\"; fi >> "$TMPFIL"
       else
         echo "\\" >> $TMPFIL
       fi
@@ -356,6 +356,8 @@ function mark_common_packages {
 function download_package {
   # $FILE - output file path
   # $URL  - remote repository path
+  if [ "$IOPT_DIALOG" == false ]; then echo -n "$CAPTION"; fi
+
   if [ -f "$FILE" ]; then
     HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
     if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
@@ -367,11 +369,20 @@ function download_package {
 
   if [ ! -f "$FILE" ]; then
     echo "Downloading the package."
-    http_download
-    if [ -f "$FILE" ]; then
-      echo "Package download completed."
+    if [ "$IOPT_DIALOG" != false ]; then
+      TITLE="$CAPTION" download_gauge
     else
+      http_download
+    fi
+
+    if [ -f "$FILE" ]; then
+      if [ "$IOPT_DIALOG "== false ]; then echo "Package download completed."; fi
+    
+    elif [ "$IOPT_DIALOG" == false ]; then
       echo "Couldn't download package!" >&2
+      exit 1
+    else
+      simple_msgbox "Download error" "Couldn't download \`$FILE\`!"
       exit 1
     fi
   fi
@@ -579,7 +590,7 @@ function packages {
     HTTP_LAST_MODIFIED=`http_header "Last-Modified"`
     if [ $(date -d "$HTTP_LAST_MODIFIED" +%s) -gt $(stat -c %Y "$FILE") ]; then
       rm "$FILE"
-      echo "New package list in the remote repository."
+      echo "New package list in the remote repository." >&2
     fi
   fi
 
@@ -590,10 +601,10 @@ function packages {
 
   if [ ! -f "$FILE" ]; then
     check_wget
-    echo "Fetching the package list..."
+    echo "Fetching the package list..." >&2
     http_download
     if [ -f "$FILE" ]; then
-      echo "Package list update completed."
+      echo "Package list update completed." >&2
     else
       echo "Cannot update the package list!" >&2
       exit 1
@@ -646,7 +657,7 @@ function remove {
     rm "$FILE"
     mv "$TMP" "$FILE"
 
-    if [ $FORMAT == 'csv' ]; then
+    if [ "$FORMAT" == 'csv' ]; then
       read -r -a LIST <<< "$FOUND";
       i=0
       while [ "${LIST[$i]}" ]; do echo "${LIST[$i]}"; done
@@ -707,7 +718,7 @@ function snap {
   URL="${REPO_URL}${PKG_PATH}"
   TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}"
 
-  echo -n "Fetching base package \`$BASE\`... "
+  CAPTION="Fetching base package \`$BASE\`... "
   download_package
   extract_package
   mkdir -p `dirname "$CFG_PATH"`
@@ -722,7 +733,7 @@ function snap {
     URL="${REPO_URL}${PKG_PATH}"
     TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}" 
 
-    echo -n "Fetching package \`$LINE\`... "
+    CAPTION="Fetching package \`$LINE\`... "
     download_package
     extract_package
     mkdir -p `dirname "$CFG_PATH"`
@@ -825,14 +836,6 @@ function set {
   fi
 }
 
-##### Restore default configuration settings
-function reset {
-  while read PACKAGE; do
-    echo $PACKAGE
-  done
-  return
-}
-
 ##### Apply project configuration (prepare target)
 function apply {
   check_make
@@ -889,7 +892,7 @@ function interactive {
   ITEM=1
   while true; do
     exec 3>&1
-    if [ `base` != '<none>' ]; then
+    if [ `base` != '<none>' -a -f "$HOME/.osprep/bases.csv" ]; then
       if [ -d '.osprep/make' ]; then
         ITEM=`dialog \
           --backtitle "$PROGRAM_NAME" \
@@ -997,7 +1000,7 @@ function interactive {
         TITLE='Base package selection'
         CAPTION='Please select base package:'
         exec 3>&1
-        NEWBASE=`OPT_FORMAT=csv bases \
+        NEWBASE=`IOPT_DIALOG=true OPT_FORMAT=csv bases \
         | sed -e 's/;/~/' | sed -e 's/"/\\"/g' \
         | csv_to_menu 2>&1 1>&3`
         exec 3>&-
@@ -1011,13 +1014,23 @@ function interactive {
         TITLE='Package selection'
         CAPTION='Please select desired packages:'
         exec 3>&1
-        PKG=`mark_common_packages \
+        SELECTIONS=`mark_common_packages \
         | sed -e 's/;/~/' | sed -e 's/"/\\"/g' \
         | csv_to_menu 'checklist' 2>&1 1>&3`
         exec 3>&-
 
-        #OUTPUT=`base $NEWBASE 2>&1`
-        dialog --msgbox "$PKG" 10 60
+        if [ "$SELECTIONS" ]; then
+          rm -f '.osprep/packages'
+
+          read -r -a ITEMS <<< "$SELECTIONS"
+          for i in "${ITEMS[@]}"; do
+            echo "$i" >> '.osprep/packages'
+          done
+        fi
+        ;;
+
+      5) # Snap packages
+        IOPT_DIALOG=true snap
         ;;
     esac
   done
@@ -1056,7 +1069,6 @@ case $1 in
   list     ) list     "$2";;
   snap     ) snap     "$2";;
   set      ) set      "$2" "$3";;
-  reset    ) reset    "$2";;
   apply    ) apply    "$2";;
   discard  ) discard  "$2";;
   image    ) image    "$2";;
