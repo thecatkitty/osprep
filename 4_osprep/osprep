@@ -201,7 +201,7 @@ function mk_to_csv {
 
         echo -n "${RDN}::${KEY};${VALUE}"
 
-        if [ "`echo $COMMENT | grep '^%[^\s] '`" ]; then
+        if [ "`echo $COMMENT | grep -P '^%[^\s][[:space:]]'`" ]; then
 
           IFS='	' read -r -a PARAMETERS <<< "${COMMENT:3}"
 
@@ -227,11 +227,11 @@ function mk_to_csv {
             fi
 
           else
-            echo -n ';$KEY;text'
+            echo -n ";$KEY;text"
           fi
 
         else
-          echo -n ';$KEY;text'
+          echo -n ";$KEY;text"
         fi
         echo ""
       fi
@@ -244,7 +244,7 @@ function record_to_mk {
   echo -n `echo ${RECORD[0]} | sed -e 's/.*:://'`
   echo -n ' = '
   echo -n "${RECORD[1]}  "
-  echo -n '%'
+  echo -n '#%'
   if [ ${RECORD[3]} == 'text' ]; then echo -n 'T'
   elif [ ${RECORD[3]} == 'check' ]; then echo -n 'C'
   elif [ ${RECORD[3]} == 'option' ]; then echo -n 'O'
@@ -252,9 +252,9 @@ function record_to_mk {
     echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
     exit 1
   fi
-  echo -n " ${RECORD[2]}"
+  echo -n "	${RECORD[2]}"
 
-  if [ ${RECORD[3]} == 'check' ]; then
+  if [ ${RECORD[3]} == 'option' ]; then
     echo -en '	'
     echo -n "${RECORD[4]}" | sed -e 's/,/ /g'
   fi
@@ -588,8 +588,37 @@ function set {
       fi
 
       IFS=';' read -r -a RECORD <<< "$LINE"
+      if [ ${RECORD[3]} == 'check' ]; then
+        if [ "$1" != '0' -a "$1" != '1' ]; then
+          echo "Cannot set value for \`$1\`! \`$2\` is not BOOL."
+          exit 1
+        fi
+
+      elif [ ${RECORD[3]} == 'option' ]; then
+        IFS=',' read -r -a ENUMS <<< "${RECORD[4]}"
+        FOUND=0
+        i=0
+        while [ "${ENUMS[$i]}" ]; do
+          if [ "${ENUMS[$i]}" == "$2" ]; then
+            FOUND=1
+            break
+          fi
+          let i++
+        done
+        if [ $FOUND -eq 0 ]; then  
+          echo "Cannot set value for \`$1\`! \`$2\` doesn't fit ENUM."
+          exit 1
+        fi
+
+      else
+        echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
+        exit 1
+      fi
+
       RECORD[1]="$2"
-      record_to_mk
+      LINE=`record_to_mk`
+      KEY=`echo "${RECORD[0]}" | sed -e 's/.*:://'`
+      sed -i "/^$KEY\\s*=/c\\$LINE" "$FILE"
 
     # No Paamayim Nekudotayim means a mistake here...
     else
