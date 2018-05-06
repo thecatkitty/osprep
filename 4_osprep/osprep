@@ -202,37 +202,61 @@ function csv_to_menu {
   cat \
 << EOF > $TMPFIL
 #!/bin/bash
+
+while true; do
+
 exec 4>&1
 SELECTION=\`dialog \\
   --backtitle "$PROGRAM_NAME" \\
   --title "$TITLE" \\
   --clear \\
+  --help-button --help-label Details \\
   --menu "$CAPTION" 0 0 10 \\
 EOF
 
-  KEYS=''
-  DETAILS=''
+  KEYS='""'
+  DETAILS='""'
   i=0
   while read LINE; do
-    let i++
-    KEYS="${KEYS} \"${RECORD[0]}\""
-    IFS=';' read -r -a RECORD <<< "$LINE"
-    echo "  $i \"${RECORD[1]}\" \\" >> "$TMPFIL"
-    DETAILS="${DETAILS} \"${RECORD[2]}\""
+    if [ "$LINE" ]; then
+      let i++
+      IFS=';' read -r -a RECORD <<< "$LINE"
+      KEYS="${KEYS} \"${RECORD[0]}\""
+      echo "  $i \"${RECORD[1]}\" \\" >> "$TMPFIL"
+      DETAILS="${DETAILS} \"${RECORD[2]}\""
+    fi
   done
   echo '  2>&1 1>&4`' >> "$TMPFIL"
-
-  echo "KEYS=($KEYS)" >> "$TMPFIL"
-  echo "DETAILS=($DETAILS)" >> "$TMPFIL"
 
   cat \
 << 'EOF' >> $TMPFIL
 RVAL=$?
 exec 4>&-
-
-if [  ]
 EOF
   
+  echo "KEYS=($KEYS)" >> "$TMPFIL"
+  echo "DETAILS=($DETAILS)" >> "$TMPFIL"
+
+  cat \
+<< EOF >> $TMPFIL
+if [ \$RVAL -eq $DIALOG_OK ]; then
+  echo \${KEYS[\$SELECTION]}
+  exit $DIALOG_OK
+elif [ \$RVAL -eq $DIALOG_HELP ]; then
+  HELP=\`echo \$SELECTION | sed 's/^.* //' \`
+  dialog \\
+  --backtitle "$PROGRAM_NAME" \\
+  --title "\${KEYS[\$HELP]}" \\
+  --msgbox "\${DETAILS[\$HELP]}" 10 60
+  continue
+else
+  exit \$RVAL
+fi
+
+done
+
+EOF
+
   chmod +x "$TMPFIL"
   cp "$TMPFIL" hurr.sh
   "$TMPFIL"
