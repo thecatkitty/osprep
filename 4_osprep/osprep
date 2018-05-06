@@ -20,7 +20,7 @@ GREEN="\033[0;32m"
 
 OPT_FORMAT="text"
 OPT_LOCAL=false
-REPO_URL="http://pkg.svc.celones.pl/osprep/"
+REPO_URL="http://localhost/osprep/"
 REPO_LOCAL="$HOME/.osprep/"
 
 ############################### HELPER ROUTINES ################################
@@ -91,7 +91,7 @@ function print_list {
       IFS=';' read -r -a RECORD <<< "$LINE"
       echo -e "${GREEN}${RECORD[0]}${NC} ${RECORD[1]}"
       echo -e "  ${BOLD}${RECORD[2]}:${NC} ${RECORD[3]}"
-      echo ""
+      echo ''
     done < "$FILE"
   fi
 }
@@ -174,16 +174,16 @@ function prepare_apply {
   mkdir -p "$MAKEFILE_PATH"
 
   echo "HTTPDOWNLOAD = wget --no-verbose --show-progress --progress=bar -U \"$HTTP_USER_AGENT\" -O" > "${MAKEFILE_PATH}/Makefile"
-  echo "OUT = \"`realpath "$TARGET"`\"" >> "${MAKEFILE_PATH}/Makefile"
+  echo "OUT = `realpath "$TARGET"`" >> "${MAKEFILE_PATH}/Makefile"
   echo "REPO = ${REPO_LOCAL}" >> "${MAKEFILE_PATH}/Makefile"
-  echo "MOUNT = \"`realpath .osprep/mount`\"" >> "${MAKEFILE_PATH}/Makefile"
+  echo "MOUNT = `realpath .osprep/mount`" >> "${MAKEFILE_PATH}/Makefile"
   echo "BASE_SETTINGS = `realpath .osprep/settings/$BASE_GENERAL_PATH.mk`" >> "${MAKEFILE_PATH}/Makefile"
-  echo "" >> "${MAKEFILE_PATH}/Makefile"
+  echo '' >> "${MAKEFILE_PATH}/Makefile"
   
   cat ".osprep/settings/${GENERAL_PATH}.mk" >> "${MAKEFILE_PATH}/Makefile"
-  echo "" >> "${MAKEFILE_PATH}/Makefile"
+  echo '' >> "${MAKEFILE_PATH}/Makefile"
   cat "${REPO_LOCAL}${GENERAL_PATH}/apply.mk" >> "${MAKEFILE_PATH}/Makefile"
-  echo "" >> "${MAKEFILE_PATH}/Makefile"
+  echo '' >> "${MAKEFILE_PATH}/Makefile"
 }
 
 function mk_to_csv {
@@ -234,7 +234,7 @@ function mk_to_csv {
         else
           echo -n ";$KEY;text"
         fi
-        echo ""
+        echo ''
       fi
     fi
   done < "$FILE"
@@ -259,7 +259,7 @@ function record_to_mk {
     echo -en '	'
     echo -n "${RECORD[4]}" | sed -e 's/,/ /g'
   fi
-  echo ""
+  echo ''
 }
 
 function beautify_settings {
@@ -276,7 +276,7 @@ function beautify_settings {
     echo "] - ${RECORD[2]}"
     if [ "${RECORD[1]}" ]; then echo "  ${RECORD[1]}"
     else echo "<none>"; fi
-    echo ""
+    echo ''
   done
 }
 
@@ -374,6 +374,7 @@ function base {
       exit 1
     fi
 
+    mkdir -p '.osprep'
     find_package $1
     if [ "$FOUND" ]; then
       echo -n "$FOUND" > ".osprep/base"
@@ -682,7 +683,7 @@ function discard {
 function image {
   MAKEDIR=".osprep/make"
   BASE=`base`
-  make -C "${MAKEDIR}/`rdn_to_path "$BASE"`" image
+  IMAGE=`realpath $1` make -C "${MAKEDIR}/`rdn_to_path "$BASE"`" image
   return
 }
 
