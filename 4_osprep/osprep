@@ -620,6 +620,8 @@ function set {
       KEY=`echo "${RECORD[0]}" | sed -e 's/.*:://'`
       sed -i "/^$KEY\\s*=/c\\$LINE" "$FILE"
 
+      set "$1"
+
     # No Paamayim Nekudotayim means a mistake here...
     else
       echo "Cannot change value of a package!" >&2
