@@ -456,9 +456,10 @@ function simple_msgbox {
     --msgbox "$2" 10 60
 }
 
-function package_selector {
+function dumb_selector {
+  # $TITLE - dialog title
   # $CAPTION - dialog caption
-  TMPFIL=`mktmp`
+  TMPFIL=`mktemp`
 
   cat \
 << EOF > $TMPFIL
@@ -482,7 +483,7 @@ EOF
       KEYS="${KEYS} \"${LINE}\""
       echo "  $i \"${LINE}\" \\" >> "$TMPFIL"
     fi
-  done < '.osprep/packages'
+  done
   echo '  2>&1 1>&4`' >> "$TMPFIL"
 
   cat \
@@ -492,7 +493,6 @@ exec 4>&-
 EOF
   
   echo "KEYS=($KEYS)" >> "$TMPFIL"
-  echo "DETAILS=($DETAILS)" >> "$TMPFIL"
 
   cat \
 << EOF >> $TMPFIL
@@ -515,7 +515,27 @@ EOF
 }
 
 function settings_menu {
-  CAPTION="Select package to change its settings:" dialog --msgbox `package_selector` 10 60
+  while true; do
+
+    exec 3>&1
+    TITLE="Select package" \
+    CAPTION="Select package to change its settings:"
+    PACKAGE=`(cat .osprep/base && echo && cat .osprep/packages) | dumb_selector  2>&1 1>&3`
+    exec 3>&-
+    if [ -z "$PACKAGE" ]; then break; fi;
+
+    while true; do
+      exec 3>&1
+      TITLE="Select settings" \
+      CAPTION="Select name of the value to be changed:"
+      KEY=`OPT_FORMAT=csv set $PACKAGE | cut -d ';' -f 1 | dumb_selector  2>&1 1>&3`
+      exec 3>&-
+      if [ -z "$KEY" ]; then break; fi;
+
+      dialog --title $KEY --msgbox `set $KEY` 10 60
+    done
+
+  done
 }
 
 ################################### COMMANDS ###################################
