@@ -168,6 +168,7 @@ function prepare_apply {
   # $1       - package ID
   GENERAL_PATH=`rdn_to_path "$1"`
   MAKEFILE_PATH="${MAKEDIR}/${GENERAL_PATH}"
+  BASE_GENERAL_PATH=`rdn_to_path $BASE`
   BASE=`base`
 
   mkdir -p "$MAKEFILE_PATH"
@@ -175,8 +176,8 @@ function prepare_apply {
   echo "HTTPDOWNLOAD = wget --no-verbose --show-progress --progress=bar -U \"$HTTP_USER_AGENT\" -O" > "${MAKEFILE_PATH}/Makefile"
   echo "OUT = \"`realpath "$TARGET"`\"" >> "${MAKEFILE_PATH}/Makefile"
   echo "REPO = ${REPO_LOCAL}" >> "${MAKEFILE_PATH}/Makefile"
-  echo "MOUNT = .osprep/mount" >> "${MAKEFILE_PATH}/Makefile"
-  echo "BASE_SETTINGS = .osprep/settings/`rdn_to_path $BASE`.mk" >> "${MAKEFILE_PATH}/Makefile"
+  echo "MOUNT = \"`realpath .osprep/mount`\"" >> "${MAKEFILE_PATH}/Makefile"
+  echo "BASE_SETTINGS = `realpath .osprep/settings/$BASE_GENERAL_PATH.mk`" >> "${MAKEFILE_PATH}/Makefile"
   echo "" >> "${MAKEFILE_PATH}/Makefile"
   
   cat ".osprep/settings/${GENERAL_PATH}.mk" >> "${MAKEFILE_PATH}/Makefile"
@@ -662,20 +663,14 @@ function apply {
   while read LINE; do prepare_apply "$LINE"; done < ".osprep/packages"
 
   echo -e "Processing packages..."
-  RESTORE_DIR="$PWD"
   find `realpath "$MAKEDIR"` -type d | grep -E '~[^/]+$' | while read LINE; do
-    echo -e "\nProcessing $LINE..."
-    cd "$LINE"
-    make apply
+    make -C "$LINE" apply
     if [ $? -ne 0 ]; then exit 1; fi
   done
-  cd "$RESTORE_DIR"
 
   echo -e "\nProcessing base package..."
   prepare_apply "$BASE"
-  cd "${MAKEDIR}/`rdn_to_path "$BASE"`"
-  make apply
-  cd "$RESTORE_DIR"
+  make -C "${MAKEDIR}/`rdn_to_path "$BASE"`" apply
 }
 
 function discard {
@@ -685,7 +680,9 @@ function discard {
 }
 
 function image {
-  # make -C <dir> image
+  MAKEDIR=".osprep/make"
+  BASE=`base`
+  make -C "${MAKEDIR}/`rdn_to_path "$BASE"`" image
   return
 }
 
