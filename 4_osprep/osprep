@@ -671,7 +671,7 @@ $PROGRAM_NAME
 Commandline usage:      $1 <command> [args] [options]
 Interactive interface:  $1 (with no arguments)
 
-OPTIONS'
+OPTIONS
   -l, --local                Disable checking for package updates
   --format=text|csv          Set output format
 
@@ -714,8 +714,16 @@ COMMANDS
 
   image <name>
     Create output disk image
-  
+
+All project settings are stored in the current working directory
+in subdirectory '.osprep', whereas packagelists and downloaded packages
+are stored in local repository in '~/.osprep'.
+
+Target directory means subdirectory 'target' of the current working directory.
+
 EOF
+
+  version | tail -n 2
 }
 
 ##### Update base packages list or change repository
