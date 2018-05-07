@@ -271,7 +271,6 @@ EOF
 
   chmod +x "$TMPFIL"
   "$TMPFIL"
-  cp "$TMPFIL" "$HOME/osprep_tmp.sh"
 
   rm "$TMPFIL"
 }
@@ -331,8 +330,7 @@ done
 EOF
 
   chmod +x "$TMPFIL"
-  "$TMPFIL"
-  cp "$TMPFIL" "$HOME/osprep_tmp.sh"
+  "$TMPFIL"  
 
   rm "$TMPFIL"
 }
@@ -570,7 +568,6 @@ EOF
 
   chmod +x "$TMPFIL"
   "$TMPFIL"
-  cp "$TMPFIL" "$HOME/osprep_tmp.sh"
 
   rm "$TMPFIL"
 }
@@ -664,9 +661,61 @@ function version {
   echo "Licensed under the MIT License."
 }
 
-##### Show usage help
+##### Show usage info
 function help {
-  echo "Program help"
+  # $1 - script invocation
+  cat \
+<< EOF
+$PROGRAM_NAME
+
+Commandline usage:      $1 <command> [args] [options]
+Interactive interface:  $1 (with no arguments)
+
+OPTIONS'
+  -l, --local                Disable checking for package updates
+  --format=text|csv          Set output format
+
+COMMANDS
+  -v, --version     Printout version information and exit
+  -h, --help, help  Show this help text and exit
+
+  update [<url>]
+    Update local repository, optionally change remote repository address
+  
+  bases
+    Show a list of available project base packages
+  
+  base <name>[~<version>]
+    Select base package for the project
+
+  packages
+    Show a list of packages available for the project
+  
+  add <name>[~<version>]
+    Add a package to the project
+
+  remove <name>[~<version>]
+    Remove packages from the project
+
+  list
+    Show a list of packages added to the project
+
+  snap
+    Download and extract selected packages
+  
+  set [<name>~<version>[::<key> [<value>]]
+    Show or modify configuration variables
+  
+  apply
+    Apply packages and configuration
+
+  discard
+    Discard all changes from base
+
+  image <name>
+    Create output disk image
+  
+EOF
 }
 
 ##### Update base packages list or change repository
@@ -912,7 +961,7 @@ function snap {
   TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}"
 
   CAPTION="Fetching base package \`$BASE\`... "
-  download_package
+  if [ $OPT_LOCAL == false ]; then download_package; fi
   extract_package
   mkdir -p `dirname "$CFG_PATH"`
   cp "${TARGET_DIR}/settings.mk" "$CFG_PATH"
@@ -927,7 +976,7 @@ function snap {
     TARGET_DIR="${REPO_LOCAL}${GENERAL_PATH}" 
 
     CAPTION="Fetching package \`$LINE\`... "
-    download_package
+    if [ $OPT_LOCAL == false ]; then download_package; fi
     extract_package
     mkdir -p `dirname "$CFG_PATH"`
     cp "${TARGET_DIR}/settings.mk" "$CFG_PATH"
@@ -1295,21 +1344,21 @@ case $1 in
 
   '' ) interactive ;;
 
-  --version|-v   ) version     ;;
-  --help|-h|help ) help        ;;
+  --version|-v   ) version      ;;
+  --help|-h|help ) help    "$0" ;;
 
-  update   ) update   "$2";;
-  bases    ) bases    "$2";;
-  base     ) base     "$2";;
-  packages ) packages "$2";;
-  add      ) add      "$2";;
-  remove   ) remove   "$2";;
-  list     ) list     "$2";;
-  snap     ) snap     "$2";;
-  set      ) _set     "$2" "$3";;
-  apply    ) apply    "$2";;
-  discard  ) discard  "$2";;
-  image    ) image    "$2";;
+  update   ) update   "$2"      ;;
+  bases    ) bases              ;;
+  base     ) base     "$2"      ;;
+  packages ) packages           ;;
+  add      ) add      "$2"      ;;
+  remove   ) remove   "$2"      ;;
+  list     ) list               ;;
+  snap     ) snap               ;;
+  set      ) _set     "$2" "$3" ;;
+  apply    ) apply              ;;
+  discard  ) discard            ;;
+  image    ) image    "$2"      ;;
 
   *)
     echo "\`$1\` is not a valid OS Preparation Utility command!" >&2
