@@ -529,10 +529,12 @@ function settings_menu {
       TITLE="Select settings" \
       CAPTION="Select name of the value to be changed:"
       KEY=`OPT_FORMAT=csv _set $PACKAGE | cut -d ';' -f 1 | dumb_selector  2>&1 1>&3`
+      KEY=`trim "$KEY"`
       exec 3>&-
       if [ -z "$KEY" ]; then break; fi;
 
-      IFS=';' read -r -a RECORD <<< `OPT_FORMAT=csv _set $PACKAGE | grep "^$KEY;"`
+      LINE=`OPT_FORMAT=csv _set $PACKAGE | grep "$KEY"`
+      IFS=';' read -r -a RECORD <<< "$LINE"
 
       if [ "${RECORD[3]}" == 'option' ]; then
         if [ -z "${RECORD[4]}" ]; then RECORD[3]='text'; fi
@@ -544,7 +546,7 @@ function settings_menu {
         INPUT=`dialog \
           --backtitle "$PROGRAM_NAME" \
           --title "Change setting - $KEY" \
-          --inputbox "New value:" 10 60 "$VALUE" \
+          --inputbox "${RECORD[2]}? New value:" 10 60 "$VALUE" \
           2>&1 1>&3`
         RVAL=$?
         exec 3>&-
@@ -559,20 +561,22 @@ function settings_menu {
       elif [ "${RECORD[3]}" == 'check' ]; then
         exec 3>&1
         VALUE=`_set $KEY`
-        INPUT=`dialog \
+        if [ "$VALUE" == '0' ]; then VALUE='--defaultno';
+        else VALUE=''; fi
+
+        dialog \
           --backtitle "$PROGRAM_NAME" \
           --title "Change setting - $KEY" \
-          --yesno "New value:" 8 60 "$VALUE" \
-          2>&1 1>&3`
+          $VALUE --yesno "${RECORD[2]}?" 8 60 \
+          2>&1 1>&3
         RVAL=$?
         exec 3>&-
 
         case $RVAL in
-          $DIALOG_CANCEL ) continue ;;
-          $DIALOG_ESC    ) exit 1   ;;
+          $DIALOG_OK     ) _set $KEY 1 ;;
+          $DIALOG_CANCEL ) _set $KEY 0 ;;
+          $DIALOG_ESC    ) exit 1      ;;
         esac
-
-        _set $KEY "$INPUT"
 
       elif [ "${RECORD[3]}" == 'option' ]; then
         echo
@@ -909,7 +913,7 @@ function _set {
 
       IFS=';' read -r -a RECORD <<< "$LINE"
       if [ ${RECORD[3]} == 'check' ]; then
-        if [ "$1" != '0' -a "$1" != '1' ]; then
+        if [ "$2" != '0' -a "$2" != '1' ]; then
           echo "Cannot set value for \`$1\`! \`$2\` is not BOOL."
           exit 1
         fi
@@ -930,7 +934,7 @@ function _set {
           exit 1
         fi
 
-      else
+      elif [ ${RECORD[3]} != 'text' ]; then
         echo "Unknown setting value type \`${RECORD[3]}\`!" >&2
         exit 1
       fi
