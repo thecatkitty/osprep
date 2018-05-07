@@ -1,3 +1,4 @@
 .osprep
 target
 *.txz
+_*
