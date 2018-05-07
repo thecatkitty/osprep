@@ -528,11 +528,56 @@ function settings_menu {
       exec 3>&1
       TITLE="Select settings" \
       CAPTION="Select name of the value to be changed:"
-      KEY=`OPT_FORMAT=csv set $PACKAGE | cut -d ';' -f 1 | dumb_selector  2>&1 1>&3`
+      KEY=`OPT_FORMAT=csv _set $PACKAGE | cut -d ';' -f 1 | dumb_selector  2>&1 1>&3`
       exec 3>&-
       if [ -z "$KEY" ]; then break; fi;
 
-      dialog --title $KEY --msgbox `set $KEY` 10 60
+      IFS=';' read -r -a RECORD <<< `OPT_FORMAT=csv _set $PACKAGE | grep "^$KEY;"`
+
+      if [ "${RECORD[3]}" == 'option' ]; then
+        if [ -z "${RECORD[4]}" ]; then RECORD[3]='text'; fi
+      fi
+
+      if [ "${RECORD[3]}" == 'text' ]; then
+        exec 3>&1
+        VALUE=`_set $KEY`
+        INPUT=`dialog \
+          --backtitle "$PROGRAM_NAME" \
+          --title "Change setting - $KEY" \
+          --inputbox "New value:" 10 60 "$VALUE" \
+          2>&1 1>&3`
+        RVAL=$?
+        exec 3>&-
+
+        case $RVAL in
+          $DIALOG_CANCEL ) continue ;;
+          $DIALOG_ESC    ) exit 1   ;;
+        esac
+
+        _set $KEY "$INPUT"
+
+      elif [ "${RECORD[3]}" == 'check' ]; then
+        exec 3>&1
+        VALUE=`_set $KEY`
+        INPUT=`dialog \
+          --backtitle "$PROGRAM_NAME" \
+          --title "Change setting - $KEY" \
+          --yesno "New value:" 8 60 "$VALUE" \
+          2>&1 1>&3`
+        RVAL=$?
+        exec 3>&-
+
+        case $RVAL in
+          $DIALOG_CANCEL ) continue ;;
+          $DIALOG_ESC    ) exit 1   ;;
+        esac
+
+        _set $KEY "$INPUT"
+
+      elif [ "${RECORD[3]}" == 'option' ]; then
+        echo
+
+      fi
     done
 
   done
@@ -818,7 +863,7 @@ function snap {
 }
 
 ##### Show or modify configuration values
-function set {
+function _set {
   # $1 (optional) - key to get/set
   # $2 (optional) - new value
 
@@ -895,7 +940,7 @@ function set {
       KEY=`echo "${RECORD[0]}" | sed -e 's/.*:://'`
       sed -i "/^$KEY\\s*=/c\\$LINE" "$FILE"
 
-      set "$1"
+      _set "$1"
 
     # No Paamayim Nekudotayim means a mistake here...
     else
@@ -1150,14 +1195,30 @@ if [ -f "${REPO_LOCAL}remote" ]; then REPO_URL=`cat ${REPO_LOCAL}remote`; fi
 if [ -z $IOPT_DIALOG ]; then IOPT_DIALOG=false; fi
 THIS="$0"
 
-for i in "$@"; do
+POSITIONAL=()
+while [ $# -gt 0 ]; do
+  i="$1"
+
   case $i in
 
-    --local|-l ) OPT_LOCAL=true     ;;
-    --format=* ) OPT_FORMAT=${i#*=} ;;
+    --local|-l )
+      OPT_LOCAL=true
+      shift
+      ;;
+
+    --format=* )
+      OPT_FORMAT=${i#*=}
+      shift
+      ;;
+
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
 
   esac
 done
+set -- "${POSITIONAL[@]}"
 
 case $1 in
 
@@ -1174,17 +1235,13 @@ case $1 in
   remove   ) remove   "$2";;
   list     ) list     "$2";;
   snap     ) snap     "$2";;
-  set      ) set      "$2" "$3";;
+  set      ) _set     "$2" "$3";;
   apply    ) apply    "$2";;
   discard  ) discard  "$2";;
   image    ) image    "$2";;
 
   *)
-    if [ $OPT_LOCAL = true ]; then
-      interactive
-    else
-      echo "\`$1\` is not a valid OS Preparation Utility command!" >&2
-      exit 1
-    fi
+    echo "\`$1\` is not a valid OS Preparation Utility command!" >&2
+    exit 1
 
 esac
