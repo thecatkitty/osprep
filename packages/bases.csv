@@ -1,0 +1,6 @@
+com.microsoft.msdos;8.0;MS-DOS 8.0;The latest version of Microsoft-made 16-bit operating system. WARNING: You need to have a valid Windows Me or newer license to use this software.
+org.kolibrios;0.7.7.0;Kolibri 0.7.7.0;Russian hipster OS written in Assembly. Не гнется, не ломается.
+org.redox-os;0.3.5;Redox 0.3.5;A Unix-like operating system written in Rust.
+pl.celones.shyos;0.7.3;ShyOS O'Neill 0.7 (build 3);Mateusz Karcz's \"operating system\" capable of greeting the user.
+pl.celones.shyos;0.9.1091;ShyOS O'Neill 0.9 (build 1091);The only functional version of Mateusz Karcz's \"operating system\". It is even somewhat configurable.
+pl.celones.shyos;0.8.13.66;ShyOS Carter 0.8.13;The latest release of the reborn-from-ashes OS (now in C++) which doesn't crash after launching.
