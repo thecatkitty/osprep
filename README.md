@@ -6,7 +6,7 @@ It allows You to change settings, add packages to the image and to create a read
 
 Prerequisites
 -------------
-OSPrep needs `bash`, `wget` and `unxz` to run. If You want to run it with an interactive menu, `dialog` is going be necessary, too.
+OSPrep needs `bash`, `wget` and `unxz` to run. If You want to run it with an interactive menu, `dialog` is going to be necessary as well.
 
 Package format
 --------------
@@ -14,7 +14,7 @@ OSPrep package is a XZ-compressed TAR archive containing at least two files in G
 * `setting.mk` - file with modifiable settings
 * `apply.mk` - file with configuration processing and image generation build targets
 
-See [com.microsoft.msdos~8.0](../blob/master/packages/com/microsoft/msdos~8.0/) for reference.
+See [com.microsoft.msdos~8.0](packages/com/microsoft/msdos~8.0/) for reference.
 
 ### `settings.mk` format
 Despite preserving a valid GNU Makefile format, `settings.mk` adds some new syntax to it. A line in this file looks like that:
@@ -107,4 +107,4 @@ All project settings are stored in the current working directory in subdirectory
 Target directory means subdirectory `target` of the current working directory.
 
 © 2018 Mateusz Karcz. All rights reserved.<br/>
-Licensed under the [MIT License](../blob/master/LICENSE).
+Licensed under the [MIT License](LICENSE).
