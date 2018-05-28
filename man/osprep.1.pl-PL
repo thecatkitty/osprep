@@ -23,7 +23,7 @@ osprep \- Operating System Preparation Utility
 ]
 .SH OPIS
 .B Operating System Preparation Utility
-(Narzędzie przygotowawcze dla systemów operacyjnych) tworzy jednolity przepływ pracy dla przygotowywania i dostosowywania mediów instalacyjnych systemów operacyjnych. Podstawowym założeniem tego projektu jest jego niezależność od platformy docelowej, tzn. możliwość przetwarzania skryptów generujących dowolny rodzaj medium dla dowolnego systemu operacyjnego. Umożliwia on użytkownikowi zmianę ustawień, dodanie pakietów do obrazu oraz tworzenie obrazów dysków gotowych do uruchomienia.
+(\fINarzędzie przygotowawcze dla systemów operacyjnych\fR) tworzy jednolity przepływ pracy dla przygotowywania i dostosowywania mediów instalacyjnych systemów operacyjnych. Podstawowym założeniem tego projektu jest jego niezależność od platformy docelowej, tzn. możliwość przetwarzania skryptów generujących dowolny rodzaj medium dla dowolnego systemu operacyjnego. Umożliwia on użytkownikowi zmianę ustawień, dodanie pakietów do obrazu oraz tworzenie obrazów dysków gotowych do uruchomienia.
 
 Gdy uruchomiony bez parametrów, \fBosprep\fR uruchamia interaktywny interfejs oparty o narzędzie dialog(1).
 
@@ -31,7 +31,7 @@ Gdy podane zostaną parametry, jedno z poniższych poleceń zostanie wykonane.
 .TP
 .BR update\ [\fIURL\fR]
 Zaktualizuj repozytorium lokalne, opcjonalnie zmień również adres repozytorium zdalnego.
-Domyślnym \fIURL\fR jest \fIhttp://charlotte.celones.pl/osprep/\fR.
+Domyślnym \fIURL\fR jest http://charlotte.celones.pl/osprep/.
 .TP
 .BR bases
 Pokaż listę dostępnych pakietów bazowych.
@@ -76,14 +76,14 @@ Utwórz wyjściowy obraz dysku.
 .BR \-v,\ \-\-version
 Wypisz informację o wersji i zakończ.
 .TP
-.BR \-h,\ \-\-help, help
+.BR \-h,\ \-\-help,\ help
 Pokaż tekst pomocy i zakończ.
 .SH OPCJE
-TP
+.TP
 .BR \-l,\ \-\-local
 Wyłącz sprawdzanie aktualizacji pakietów.
 .TP
-.BR \-\-format=\fIformat_wyjścia\f
+.BR \-\-format=\fIformat_wyjścia\fR
 Ustaw format wyjścia.
 Obsługiwanymi formatami wyjścia są:
 \fBtext\fR - łatwy w rozumieniu sformatowany tekst.
