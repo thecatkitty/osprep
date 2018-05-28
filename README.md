@@ -89,7 +89,7 @@ osprep <command> [args] [options]
   <dt>snap</dt>
   <dd>Download and extract selected packages</dd>
 
-  <dt>set [&lt;name&gt;~&lt;version&gt;[::&lt;key&gt; [&lt;value&gt;]]</dt>
+  <dt>set [&lt;name&gt;~&lt;version&gt;[::&lt;key&gt; [&lt;value&gt;]]]</dt>
   <dd>Show or modify configuration variables</dd>
 
   <dt>apply</dt>
@@ -98,7 +98,7 @@ osprep <command> [args] [options]
   <dt>discard</dt>
   <dd>Discard all changes from base</dd>
 
-  <dt>image <name></dt>
+  <dt>image &lt;name&gt;</dt>
   <dd>Create output disk image</dd>
 </dl>
 
