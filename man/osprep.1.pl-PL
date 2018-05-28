@@ -1,0 +1,104 @@
+.TH OSPREP 1
+.SH NAZWA
+osprep \- Operating System Preparation Utility
+.SH SKŁADNIA
+.B osprep
+[
+\fBupdate\fR [\fIURL\fR] |
+\fBbases\fR |
+\fBbase\fR [\fInazwa\fR[~\fIwersja\fR]] |
+\fBpackages\fR |
+\fBadd\fR [\fInazwa\fR[~\fIwersja\fR]] |
+\fBremove\fR \fInazwa\fR[~\fIwersja\fR] |
+\fBlist\fR |
+\fBsnap\fR |
+\fBset\fR [\fInazwa\fR~\fIwersja\fR[::\fIklucz\fR [\fIwartość\fR]]] |
+\fBapply\fR |
+\fBdiscard\fR |
+\fBimage\fR \fIfile\fR |
+{\fB\-v\fR, \fB\-\-version\fR} |
+{\fB\-h\fR, \fB\-\-help\fR, \fBhelp\fR}
+[{\fB\-l\fR, \fB\-\-local\fR}]
+[\fB\-\-format=\fIformat_wyjścia\fR\fR]
+]
+.SH OPIS
+.B Operating System Preparation Utility
+(Narzędzie przygotowawcze dla systemów operacyjnych) tworzy jednolity przepływ pracy dla przygotowywania i dostosowywania mediów instalacyjnych systemów operacyjnych. Podstawowym założeniem tego projektu jest jego niezależność od platformy docelowej, tzn. możliwość przetwarzania skryptów generujących dowolny rodzaj medium dla dowolnego systemu operacyjnego. Umożliwia on użytkownikowi zmianę ustawień, dodanie pakietów do obrazu oraz tworzenie obrazów dysków gotowych do uruchomienia.
+
+Gdy uruchomiony bez parametrów, \fBosprep\fR uruchamia interaktywny interfejs oparty o narzędzie dialog(1).
+
+Gdy podane zostaną parametry, jedno z poniższych poleceń zostanie wykonane.
+.TP
+.BR update\ [\fIURL\fR]
+Zaktualizuj repozytorium lokalne, opcjonalnie zmień również adres repozytorium zdalnego.
+Domyślnym \fIURL\fR jest \fIhttp://charlotte.celones.pl/osprep/\fR.
+.TP
+.BR bases
+Pokaż listę dostępnych pakietów bazowych.
+.TP
+.BR base\ [\fInazwa\fR[~\fIwersja\fR]]
+Wybierz bazę dla projektu.
+Pokaż obecnie wybrany pakiet bazowy, gdy nie podano \fInazwy\fR.
+Wybierz najnowszą wersję, gdy nie podano \fIwersji\fR.
+.TP
+.BR packages
+Pokaż listę pakietów dostępnych dla projektu.
+.TP
+.BR add\ [\fInazwa\fR[~\fIwersja\fR]]
+Dodaj pakiet do projektu.
+Wybierz najnowszą wersję, gdy nie podano \fIwersji\fR.
+.TP
+.BR remove\ \fInazwa\fR[~\fIwersja\fR]
+Usuń pakiet(y) z projektu.
+Wybierz wszytkie wersje, gdy nie podano \fIwersji\fR.
+.TP
+.BR list
+Pokaż listę pakietów dodanych do projektu.
+.TP
+.BR snap
+Pobierz i rozpakuj wybrane pakiety.
+.TP
+.BR set\ [\fInazwa\fR~\fIwersja\fR[::\fIklucz\fR [\fIwartość\fR]]]
+Pokaż lub zmodyfikuj zmienne konfiguracji.
+Pokaż wszystkie zmienne wraz z ich wartościami, gdy nie podano \fInazwy\fR i \fIwersji\fR.
+Pokaż wszystkie zmienne danego pakietu, gdy nie podano \fIklucza\fR.
+Pokaż jedynie wartość zmiennej, gdy nie podano nowej \fIwartości\fR.
+.TP
+.BR apply
+Zatwierdź pakiety i konfigurację.
+.TP
+.BR discard
+Porzuć wszystkie zmiany w stosunku do bazy.
+.TP
+.BR image\ \fIfile\fR
+Utwórz wyjściowy obraz dysku.
+.TP
+.BR \-v,\ \-\-version
+Wypisz informację o wersji i zakończ.
+.TP
+.BR \-h,\ \-\-help, help
+Pokaż tekst pomocy i zakończ.
+.SH OPCJE
+TP
+.BR \-l,\ \-\-local
+Wyłącz sprawdzanie aktualizacji pakietów.
+.TP
+.BR \-\-format=\fIformat_wyjścia\f
+Ustaw format wyjścia.
+Obsługiwanymi formatami wyjścia są:
+\fBtext\fR - łatwy w rozumieniu sformatowany tekst.
+\fBcsv\fR - łatwy w przetwarzaniu arkusz danych oddzielonych średnikami.
+.SH STATUS WYJŚCIA
+\fBosprep\fR zwraca wartość niezerową w przypadku błędu.
+.SH PLIKI
+\fBosprep\fR przechowuje swoje listy pakietów oraz lokalne repozytorium pakietów w podkatalogu \fB.osprep\fR katalogu domowego użytkownika.
+
+Wszystkie ustawienia projektu są przechowywane w podkatalogu \fB.osprep\fR bieżącego katalogu roboczego.
+.SH UWAGI
+\fBosprep\fR wymaga do działania bash(1), wget(1) oraz unxz(1). W celu montowania i tworzenia obrazów dysków obecnośc sudo(8) jest nieunikniona. Jeżeli użytkownik chce uruchomić skrypt z interaktywnym menu, narzędzie dialog(1) również będzie potrzebne.
+.SH AUTORZY
+Copyright © 2018 Mateusz Karcz
+
+Ten dokument jako część \fBosprep\fR jest licencjonowany na zasadach Licencji MIT.
+
+Repozytorium GitHub: https://github.com/thecatkitty/osprep
