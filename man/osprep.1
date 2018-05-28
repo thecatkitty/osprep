@@ -1,0 +1,104 @@
+.TH OSPREP 1
+.SH NAME
+osprep \- Operating System Preparation Utility
+.SH SYNOPSIS
+.B osprep
+[
+\fBupdate\fR [\fIURL\fR] |
+\fBbases\fR |
+\fBbase\fR [\fIname\fR[~\fIversion\fR]] |
+\fBpackages\fR |
+\fBadd\fR [\fIname\fR[~\fIversion\fR]] |
+\fBremove\fR \fIname\fR[~\fIversion\fR] |
+\fBlist\fR |
+\fBsnap\fR |
+\fBset\fR [\fIname\fR~\fIversion\fR[::\fIkey\fR [\fIvalue\fR]]] |
+\fBapply\fR |
+\fBdiscard\fR |
+\fBimage\fR \fIfile\fR |
+{\fB\-v\fR, \fB\-\-version\fR} |
+{\fB\-h\fR, \fB\-\-help\fR, \fBhelp\fR}
+[{\fB\-l\fR, \fB\-\-local\fR}]
+[\fB\-\-format=\fIoutput_format\fR\fR]
+]
+.SH DESCRIPTION
+.B Operating System Preparation Utility
+creates a unified workflow for preparing and customizing operating system installation media. The major foundation of this project is to make it target platform independent, that means to be able to process scripts for generating any kind of media of any kind of operating system. It makes it possible for the user to change settings, add packages to the image and to create a ready-to-go disk image.
+
+When run with no parameters, \fBosprep\fR launches an interactive dialog(1) based interface.
+
+When any parameters are given, one of the command below are run.
+.TP
+.BR update\ [\fIURL\fR]
+Update local repository, optionally change remote repository address.
+Default \fIURL\fR is \fIhttp://charlotte.celones.pl/osprep/\fR.
+.TP
+.BR bases
+Show a list of available project base packages.
+.TP
+.BR base\ [\fIname\fR[~\fIversion\fR]]
+Select base package for the project.
+Show currently selected base package when no name is given.
+Select the newest version when no \fIversion\fR is given.
+.TP
+.BR packages
+Show a list of packages available for the project.
+.TP
+.BR add\ [\fIname\fR[~\fIversion\fR]]
+Add a package to the project.
+Select the newest version when no \fIversion\fR is given.
+.TP
+.BR remove\ \fIname\fR[~\fIversion\fR]
+Remove package(s) from the project.
+Select all versions when no \fIversion\fR is given.
+.TP
+.BR list
+Show a list of packages added to the project.
+.TP
+.BR snap
+Download and extract selected packages.
+.TP
+.BR set\ [\fIname\fR~\fIversion\fR[::\fIkey\fR [\fIvalue\fR]]]
+Show or modify configuration variables.
+Show all variables with their values when no \fIname\fR and \fIversion\fR is given.
+Show all variables of a particular package when no \fIkey\fR is given.
+Show only value of a variable when no new \fIvalue\fR is given.
+.TP
+.BR apply
+Apply packages and configuration.
+.TP
+.BR discard
+Discard all changes from base.
+.TP
+.BR image\ \fIfile\fR
+Create output disk image.
+.TP
+.BR \-v,\ \-\-version
+Printout version information and exit.
+.TP
+.BR \-h,\ \-\-help, help
+Show the help text and exit.
+.SH OPTIONS
+TP
+.BR \-l,\ \-\-local
+Disable checking for package updates
+.TP
+.BR \-\-format=\fIoutput_format\f
+Set output format.
+Supported output formats are:
+\fBtext\fR - user-friendly formatted text.
+\fBcsv\fR - easy-to-process semicolon-separated dataset.
+.SH EXIT STATUS
+\fBosprep\fR return a non-zero value on error.
+.SH FILES
+\fBosprep\fR stores its packagelists and local package repository in \fB.osprep\fR subdirectory of the current user's home directory.
+
+All project settings are stored in \fB.osprep\fR subdirectory of the current working directory.
+.SH NOTES
+\fBosprep\fR needs bash(1), wget(1) and unxz(1) to run. In order to mount and create disk images the existence of sudo(8) is inevitable. If the user wants to run it with an interactive menu, dialog(1) is going to be necessary as well.
+.SH AUTHORS
+Copyright © 2018 Mateusz Karcz
+
+This document as a part of \fBosprep\fR is licensed under the MIT License.
+
+GitHub repository: https://github.com/thecatkitty/osprep
